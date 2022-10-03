@@ -791,7 +791,7 @@ struct HfFilter { // Main struct for HF triggers
   using BigTracksWithProtonPID = soa::Filtered<soa::Join<aod::BigTracksExtended, aod::TrackSelection, aod::pidTPCFullPr, aod::pidTOFFullPr>>;
 
   void process(aod::Collision const& collision,
-               aod::BCsWithTimestamps const& ,
+               aod::BCsWithTimestamps const&,
                HfTrackIndexProng2withColl const& cand2Prongs,
                HfTrackIndexProng3withColl const& cand3Prongs,
                BigTracksWithProtonPID const& tracks)
