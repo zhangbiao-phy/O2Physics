@@ -239,9 +239,6 @@ struct HfTreeCreatorTccToD0D0Pi {
                           aod::TrackAssoc const& trackIndices,
                           TrkType const&, aod::BCs const&)
   {
-    // Filling event properties
-    std::map<int64_t, int64_t> selectedTracksPion;
-
     for (const auto& candidateD1 : candidates) {
       for (auto candidateD2 = candidateD1 + 1; candidateD2 != candidates.end(); ++candidateD2) {
         for (const auto& trackId : trackIndices) {
