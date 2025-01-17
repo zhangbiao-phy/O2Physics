@@ -341,7 +341,7 @@ struct HfTreeCreatorTccToD0D0Pi {
             dcaPion[1],
             trackPion.itsNCls(),
             trackPion.tpcNClsCrossedRows(),
-            trackPion.tpcChi2NCl());
+            trackPion.tpcChi2NCl(),
               cent);
         } // end of loop track
       } // end of loop second D0
