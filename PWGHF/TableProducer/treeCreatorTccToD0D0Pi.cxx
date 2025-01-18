@@ -22,7 +22,9 @@
 #include "ReconstructionDataFormats/DCA.h"
 
 #include "Common/Core/trackUtilities.h"
+#include "Common/Core/TrackSelection.h"
 #include "Common/DataModel/CollisionAssociationTables.h"
+#include "Common/Core/TrackSelectionDefaults.h"
 
 #include "PWGHF/Core/HfHelper.h"
 #include "PWGHF/Core/CentralityEstimation.h"
@@ -160,12 +162,18 @@ struct HfTreeCreatorTccToD0D0Pi {
   Produces<o2::aod::HfCandTccFulls> rowCandidateFull;
   Produces<o2::aod::HfCandD0FullEvs> rowCandidateFullEvents;
 
-  Configurable<float> ptMinSoftPion{"ptMinSoftPion", 0.4, "Min pt for the softpion"};
-  Configurable<bool> usePionIsGlobalTrackWoDCA{"usePionIsGlobalTrackWoDCA", true, "check isGlobalTrackWoDCA status for pions, for Run3 studies"};
-  Configurable<std::vector<double>> binsPtPion{"binsPtPion", std::vector<double>{hf_cuts_single_track::vecBinsPtTrack}, "track pT bin limits for pion DCA XY pT-dependent cut"};
-  Configurable<LabeledArray<double>> cutsTrackPionDCA{"cutsTrackPionDCA", {hf_cuts_single_track::cutsTrack[0], hf_cuts_single_track::nBinsPtTrack, hf_cuts_single_track::nCutVarsTrack, hf_cuts_single_track::labelsPtTrack, hf_cuts_single_track::labelsCutVarTrack}, "Single-track selections per pT bin for pions"};
+  // Configurable<float> ptMinSoftPion{"ptMinSoftPion", 0.0, "Min pt for the softpion"};
+  Configurable<bool> usePionIsGlobalTrackWoDCA{"usePionIsGlobalTrackWoDCA", true, "check isGlobalTrackWoDCA status for pions"};
+
+  Configurable<float> softPiEtaMax{"softPiEtaMax", 0.9f, "Soft pion max value for pseudorapidity (abs vale)"};
+  Configurable<float> softPiChi2Max{"softPiChi2Max", 36.f, "Soft pion max value for chi2 ITS"};
+  Configurable<int> softPiItsHitMap{"softPiItsHitMap", 127, "Soft pion ITS hitmap"};
+  Configurable<int> softPiItsHitsMin{"softPiItsHitsMin", 1, "Minimum number of ITS layers crossed by the soft pion among those in \"softPiItsHitMap\""};
+  Configurable<float> softPiDcaXYMax{"softPiDcaXYMax", 0.065, "Soft pion max dcaXY (cm)"};
+  Configurable<float> softPiDcaZMax{"softPiDcaZMax", 0.065, "Soft pion max dcaZ (cm)"};
 
   HfHelper hfHelper;
+  TrackSelection softPiCuts;
 
   using TracksPid = soa::Join<aod::pidTPCFullPi, aod::pidTOFFullPi, aod::pidTPCFullKa, aod::pidTOFFullKa>;
   using TracksWPid = soa::Join<aod::TracksWCovDcaExtra, TracksPid, aod::TrackSelection>;
@@ -185,6 +193,37 @@ struct HfTreeCreatorTccToD0D0Pi {
     if (std::accumulate(doprocess.begin(), doprocess.end(), 0) != 1) {
       LOGP(fatal, "Only one process function can be enabled at a time.");
     }
+    // soft pion setting take from Sigmac analysis by mattia
+    /// apply the global-track w/o dca cuts for soft pion BEFORE ALL OTHER CUSTOM CUTS
+    if (usePionIsGlobalTrackWoDCA) {
+      LOG(info) << ">>> usePionIsGlobalTrackWoDCA==true  ==>  global-track w/o dca cuts for soft pionapplied BEFORE ALL OTHER CUSTOM CUTS <<<";
+      /// same configuration as in track selection (itsMatching==1)
+      softPiCuts = getGlobalTrackSelectionRun3ITSMatch(TrackSelection::GlobalTrackRun3ITSMatching::Run3ITSibAny, 0);
+      /// remove dca cuts (applied manually after the possible track-to-collision reassociation)
+      softPiCuts.SetMaxDcaXY(99999);
+      softPiCuts.SetMaxDcaZ(99999);
+    }
+    // kinematics
+    // softPiCuts.SetPtRange(0.001, 1000.); // pt
+    softPiCuts.SetEtaRange(-softPiEtaMax, softPiEtaMax); // eta
+    // ITS chi2
+    softPiCuts.SetMaxChi2PerClusterITS(softPiChi2Max);
+    //  ITS hitmap
+    std::set<uint8_t> setSoftPiItsHitMap; // = {};
+    for (int idItsLayer = 0; idItsLayer < 7; idItsLayer++) {
+      if (TESTBIT(softPiItsHitMap, idItsLayer)) {
+        setSoftPiItsHitMap.insert(static_cast<uint8_t>(idItsLayer));
+      }
+    }
+    LOG(info) << "### ITS hitmap for soft pion";
+    LOG(info) << "    >>> setSoftPiItsHitMap.size(): " << setSoftPiItsHitMap.size();
+    LOG(info) << "    >>> Custom ITS hitmap dfchecked: ";
+    for (std::set<uint8_t>::iterator it = setSoftPiItsHitMap.begin(); it != setSoftPiItsHitMap.end(); it++) {
+      LOG(info) << "        Layer " << static_cast<int>(*it) << " ";
+    }
+    LOG(info) << "############";
+    softPiCuts.SetRequireITSRefit();
+    softPiCuts.SetRequireHitsInITSLayers(softPiItsHitsMin, setSoftPiItsHitMap);
   }
 
   template <typename T>
@@ -198,30 +237,6 @@ struct HfTreeCreatorTccToD0D0Pi {
       collision.posZ(),
       isEventReject,
       runNumber);
-  }
-
-  /// \param trackPion is a track with the pion hypothesis
-  /// \param dcaPion is the 2-D array with track DCAs of the pion
-  /// \return true if trackPion passes all cuts
-  template <typename T1, typename T2>
-  bool isPionSelected(const T1& trackPion, const T2& dcaPion)
-  {
-    // check isGlobalTrackWoDCA status for pions if wanted
-    if (usePionIsGlobalTrackWoDCA && !trackPion.isGlobalTrackWoDCA()) {
-      return false;
-    }
-    float pTBinTrack = trackPion.pt();
-    if (pTBinTrack < ptMinSoftPion) {
-      return false;
-    }
-    if (std::abs(dcaPion[0]) < cutsTrackPionDCA->get(pTBinTrack, "min_dcaxytoprimary")) {
-      return false; // minimum DCAxy
-    }
-    if (std::abs(dcaPion[0]) > cutsTrackPionDCA->get(pTBinTrack, "max_dcaxytoprimary")) {
-      return false; // maximum DCAxy
-    }
-
-    return true;
   }
 
   /// Evaluate centrality/multiplicity percentile (centrality estimator is automatically selected based on the used table)
@@ -239,17 +254,28 @@ struct HfTreeCreatorTccToD0D0Pi {
                           aod::TrackAssoc const& trackIndices,
                           TrkType const&, aod::BCs const&)
   {
+    // Filling event properties
+    std::map<int64_t, int64_t> selectedTracksPion;
+
     for (const auto& candidateD1 : candidates) {
       for (auto candidateD2 = candidateD1 + 1; candidateD2 != candidates.end(); ++candidateD2) {
         for (const auto& trackId : trackIndices) {
           auto trackPion = trackId.template track_as<TrkType>();
 
-          auto trackParCovPion = getTrackParCov(trackPion);
-          o2::gpu::gpustd::array<float, 2> dcaPion{trackPion.dcaXY(), trackPion.dcaZ()};
-          // apply selections on pion tracks
-          if (!isPionSelected(trackPion, dcaPion)) {
+          // auto trackParCovPion = getTrackParCov(trackPion);
+          // o2::gpu::gpustd::array<float, 2> dcaPion{trackPion.dcaXY(), trackPion.dcaZ()};
+          //  apply selections on pion tracks
+          // if (!isPionSelected(trackPion, dcaPion)) {
+          //   continue;
+          // }
+
+          if (!softPiCuts.IsSelected(trackPion)) {
             continue;
           }
+          if (std::abs(trackPion.dcaXY()) > softPiDcaXYMax || std::abs(trackPion.dcaZ()) > softPiDcaZMax) {
+            continue;
+          }
+
           // avoid shared tracks
           if (
             (candidateD1.prong0Id() == candidateD2.prong0Id()) ||
@@ -337,12 +363,12 @@ struct HfTreeCreatorTccToD0D0Pi {
             candidateD1.cpa(),
             candidateD2.cpa(),
             trackPion.sign(),
-            dcaPion[0],
-            dcaPion[1],
+            trackPion.dcaXY(),
+            trackPion.dcaZ(),
             trackPion.itsNCls(),
             trackPion.tpcNClsCrossedRows(),
             trackPion.tpcChi2NCl(),
-              cent);
+            cent);
         } // end of loop track
       } // end of loop second D0
     } // end of loop first D0
