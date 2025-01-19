@@ -265,27 +265,16 @@ struct HfTreeCreatorTccToD0D0Pi {
                           TrkType const& track, aod::BCs const&)
   {
     // Filling event properties
-    std::map<int64_t, int64_t> selectedTracksPion;
-
     for (const auto& candidateD1 : candidates) {
       for (auto candidateD2 = candidateD1 + 1; candidateD2 != candidates.end(); ++candidateD2) {
         for (const auto& trackId : trackIndices) {
           auto trackPion = trackId.template track_as<TrkType>();
-
-          // auto trackParCovPion = getTrackParCov(trackPion);
-          // o2::gpu::gpustd::array<float, 2> dcaPion{trackPion.dcaXY(), trackPion.dcaZ()};
-          //  apply selections on pion tracks
-          // if (!isPionSelected(trackPion, dcaPion)) {
-          //   continue;
-          // }
-
           if (!softPiCuts.IsSelected(trackPion)) {
             continue;
           }
           if (std::abs(trackPion.dcaXY()) > softPiDcaXYMax || std::abs(trackPion.dcaZ()) > softPiDcaZMax) {
             continue;
           }
-
           // avoid shared tracks
           if (
             (candidateD1.prong0Id() == candidateD2.prong0Id()) ||
