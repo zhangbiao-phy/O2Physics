@@ -335,24 +335,29 @@ struct HfTreeCreatorTccToD0D0Pi {
 
           // LOG(info) << " candidateD1.collisionId() " << candidateD1.collisionId()<<" massD01 "<<massD01<<" massD02 "<<massD02 <<"  trackPion.pt() "<< trackPion.pt();
 
-          auto trackPosD0Dau1 = track.rawIteratorAt(candidateD1.prong0Id()); // positive daughter D01
-          auto trackNegD0Dau1 = track.rawIteratorAt(candidateD1.prong1Id()); // negative daughter D01
+          auto trackPosD1Dau = track.rawIteratorAt(candidateD1.prong0Id()); // positive daughter D01
+          auto trackNegD1Dau = track.rawIteratorAt(candidateD1.prong1Id()); // negative daughter D01
 
-          auto trackPosD0Dau2 = track.rawIteratorAt(candidateD2.prong0Id()); // positive daughter D02
-          auto trackNegD0Dau2 = track.rawIteratorAt(candidateD2.prong1Id()); // negative daughter D02
+          auto trackPosD2Dau = track.rawIteratorAt(candidateD2.prong0Id()); // positive daughter D02
+          auto trackNegD2Dau = track.rawIteratorAt(candidateD2.prong1Id()); // negative daughter D02
 
-          std::array<float, 3> pVecPosD0Dau1{trackPosD0Dau1.pVector()};
-          std::array<float, 3> pVecNegD0Dau1{trackNegD0Dau1.pVector()};
-          std::array<float, 3> pVecPosD0Dau2{trackPosD0Dau2.pVector()};
-          std::array<float, 3> pVecNegD0Dau2{trackNegD0Dau2.pVector()};
+          std::array<float, 3> pVecPosD1Dau{trackPosD1Dau.pVector()};
+          std::array<float, 3> pVecNegD1Dau{trackNegD1Dau.pVector()};
+          std::array<float, 3> pVecPosD2Dau{trackPosD2Dau.pVector()};
+          std::array<float, 3> pVecNegD2Dau{trackNegD2Dau.pVector()};
           std::array<float, 3> pVecSoftPion = trackPion.pVector();
-          std::array<float, 2> massDausD0{massPi, massKa};
+          std::array<float, 2> massD1Daus{massPi, massKa};
+          std::array<float, 2> massD2Daus{massPi, massKa};
 
           if (candidateD1.isSelD0bar()) {
-            massDausD0[0] = massKa, massDausD0[1] = massPi;
+            massD1Daus[0] = massKa, massD1Daus[1] = massPi;
           }
-          auto massKpipi1 = RecoDecay::m(std::array{pVecPosD0Dau1, pVecNegD0Dau1, pVecSoftPion}, std::array{massDausD0[0], massDausD0[1], massPi});
-          auto massKpipi2 = RecoDecay::m(std::array{pVecPosD0Dau2, pVecNegD0Dau2, pVecSoftPion}, std::array{massDausD0[0], massDausD0[1], massPi});
+          if (candidateD2.isSelD0bar()) {
+            massD2Daus[0] = massKa, massD2Daus[1] = massPi;
+          }
+
+          auto massKpipi1 = RecoDecay::m(std::array{pVecPosD1Dau, pVecNegD1Dau, pVecSoftPion}, std::array{massD1Daus[0], massD1Daus[1], massPi});
+          auto massKpipi2 = RecoDecay::m(std::array{pVecPosD2Dau, pVecNegD2Dau, pVecSoftPion}, std::array{massD2Daus[0], massD2Daus[1], massPi});
 
           deltaMassD01 = massKpipi1 - massD01;
           deltaMassD02 = massKpipi2 - massD02;
