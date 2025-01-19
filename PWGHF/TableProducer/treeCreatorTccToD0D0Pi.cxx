@@ -38,6 +38,7 @@
 
 using namespace o2;
 using namespace o2::analysis;
+using namespace o2::constants::physics;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 using namespace o2::hf_trkcandsel;
@@ -69,6 +70,8 @@ DECLARE_SOA_COLUMN(SelFlagD1, selFlagD1, int8_t);
 DECLARE_SOA_COLUMN(SelFlagD2, selFlagD2, int8_t);
 DECLARE_SOA_COLUMN(MD1, mD1, float);
 DECLARE_SOA_COLUMN(MD2, mD2, float);
+DECLARE_SOA_COLUMN(DeltaMD1, deltaMD1, float);
+DECLARE_SOA_COLUMN(DeltaMD2, deltaMD2, float);
 DECLARE_SOA_COLUMN(EtaD1, etaD1, float);
 DECLARE_SOA_COLUMN(EtaD2, etaD2, float);
 DECLARE_SOA_COLUMN(EtaSoftPi, etaSoftPi, float);
@@ -122,6 +125,8 @@ DECLARE_SOA_TABLE(HfCandTccFulls, "AOD", "HFCANDTCCFULL",
                   full::SelFlagD2,
                   full::MD1,
                   full::MD2,
+                  full::DeltaMD1,
+                  full::DeltaMD2,
                   full::EtaD1,
                   full::EtaD2,
                   full::EtaSoftPi,
@@ -172,6 +177,8 @@ struct HfTreeCreatorTccToD0D0Pi {
   Configurable<float> softPiDcaXYMax{"softPiDcaXYMax", 0.065, "Soft pion max dcaXY (cm)"};
   Configurable<float> softPiDcaZMax{"softPiDcaZMax", 0.065, "Soft pion max dcaZ (cm)"};
 
+  float massPi, massKa;
+
   HfHelper hfHelper;
   TrackSelection softPiCuts;
 
@@ -189,6 +196,9 @@ struct HfTreeCreatorTccToD0D0Pi {
 
   void init(InitContext const&)
   {
+    massPi = MassPiPlus;
+    massKa = MassKPlus;
+
     std::array<bool, 1> doprocess{doprocessDataWithML};
     if (std::accumulate(doprocess.begin(), doprocess.end(), 0) != 1) {
       LOGP(fatal, "Only one process function can be enabled at a time.");
@@ -252,7 +262,7 @@ struct HfTreeCreatorTccToD0D0Pi {
   void runCandCreatorData(CollType const& collision,
                           CandType const& candidates,
                           aod::TrackAssoc const& trackIndices,
-                          TrkType const&, aod::BCs const&)
+                          TrkType const& track, aod::BCs const&)
   {
     // Filling event properties
     std::map<int64_t, int64_t> selectedTracksPion;
@@ -293,6 +303,8 @@ struct HfTreeCreatorTccToD0D0Pi {
           float yD2 = hfHelper.yD0(candidateD2);
           float massD01 = -999;
           float massD02 = -999;
+          float deltaMassD01 = -999;
+          float deltaMassD02 = -999;
           int candFlagD1 = -999;
           int candFlagD2 = -999;
           float cent = evaluateCentralityColl(collision);
@@ -321,6 +333,30 @@ struct HfTreeCreatorTccToD0D0Pi {
             massD02 = hfHelper.invMassD0barToKPi(candidateD2);
           }
 
+          // LOG(info) << " candidateD1.collisionId() " << candidateD1.collisionId()<<" massD01 "<<massD01<<" massD02 "<<massD02 <<"  trackPion.pt() "<< trackPion.pt();
+
+          auto trackPosD0Dau1 = track.rawIteratorAt(candidateD1.prong0Id()); // positive daughter D01
+          auto trackNegD0Dau1 = track.rawIteratorAt(candidateD1.prong1Id()); // negative daughter D01
+
+          auto trackPosD0Dau2 = track.rawIteratorAt(candidateD2.prong0Id()); // positive daughter D02
+          auto trackNegD0Dau2 = track.rawIteratorAt(candidateD2.prong1Id()); // negative daughter D02
+
+          std::array<float, 3> pVecPosD0Dau1{trackPosD0Dau1.pVector()};
+          std::array<float, 3> pVecNegD0Dau1{trackNegD0Dau1.pVector()};
+          std::array<float, 3> pVecPosD0Dau2{trackPosD0Dau2.pVector()};
+          std::array<float, 3> pVecNegD0Dau2{trackNegD0Dau2.pVector()};
+          std::array<float, 3> pVecSoftPion = trackPion.pVector();
+          std::array<float, 2> massDausD0{massPi, massKa};
+
+          if (candidateD1.isSelD0bar()) {
+            massDausD0[0] = massKa, massDausD0[1] = massPi;
+          }
+          auto massKpipi1 = RecoDecay::m(std::array{pVecPosD0Dau1, pVecNegD0Dau1, pVecSoftPion}, std::array{massDausD0[0], massDausD0[1], massPi});
+          auto massKpipi2 = RecoDecay::m(std::array{pVecPosD0Dau2, pVecNegD0Dau2, pVecSoftPion}, std::array{massDausD0[0], massDausD0[1], massPi});
+
+          deltaMassD01 = massKpipi1 - massD01;
+          deltaMassD02 = massKpipi2 - massD02;
+
           rowCandidateFull(
             candidateD1.collisionId(),
             candidateD1.pt(),
@@ -345,6 +381,8 @@ struct HfTreeCreatorTccToD0D0Pi {
             candFlagD2,
             massD01,
             massD02,
+            deltaMassD01,
+            deltaMassD02,
             candidateD1.eta(),
             candidateD2.eta(),
             trackPion.eta(),
