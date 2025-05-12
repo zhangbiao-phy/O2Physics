@@ -54,9 +54,6 @@ namespace o2::aod
 namespace full
 {
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-DECLARE_SOA_COLUMN(PtD1, ptD1, float);
-DECLARE_SOA_COLUMN(PtD2, ptD2, float);
-DECLARE_SOA_COLUMN(PtPi, ptPi, float);
 DECLARE_SOA_COLUMN(PxProng0D1, pxProng0D1, float);
 DECLARE_SOA_COLUMN(PxProng1D1, pxProng1D1, float);
 DECLARE_SOA_COLUMN(PyProng0D1, pyProng0D1, float);
@@ -96,8 +93,9 @@ DECLARE_SOA_COLUMN(NSigTpcSoftPi, nSigTpcSoftPi, float);
 DECLARE_SOA_COLUMN(NSigTofSoftPi, nSigTofSoftPi, float);
 DECLARE_SOA_COLUMN(MlScoreD1, mlScoreD1, float);
 DECLARE_SOA_COLUMN(MlScoreD2, mlScoreD2, float);
-DECLARE_SOA_COLUMN(DecayLengthD1, decayLengthD1, float);
-DECLARE_SOA_COLUMN(DecayLengthD2, decayLengthD2, float);
+DECLARE_SOA_COLUMN(ImpactParameterD1, impactParameterD1, float);
+DECLARE_SOA_COLUMN(ImpactParameterD2, impactParameterD2, float);
+DECLARE_SOA_COLUMN(ImpactParameterSoftPi, impactParameterSoftPi, float);
 DECLARE_SOA_COLUMN(CpaD1, cpaD1, float);
 DECLARE_SOA_COLUMN(CpaD2, cpaD2, float);
 DECLARE_SOA_COLUMN(Chi2PCA, chi2PCA, float);
@@ -114,9 +112,6 @@ DECLARE_SOA_COLUMN(RunNumber, runNumber, int);
 } // namespace full
 
 DECLARE_SOA_TABLE(HfCandTccLites, "AOD", "HFCANDTCCLITE",
-                  full::PtD1,
-                  full::PtD2,
-                  full::PtPi,
                   full::PxProng0D1,
                   full::PxProng1D1,
                   full::PyProng0D1,
@@ -156,8 +151,9 @@ DECLARE_SOA_TABLE(HfCandTccLites, "AOD", "HFCANDTCCLITE",
                   full::NSigTofSoftPi,
                   full::MlScoreD1,
                   full::MlScoreD2,
-                  full::DecayLengthD1,
-                  full::DecayLengthD2,
+                  full::ImpactParameterD1,
+                  full::ImpactParameterD2,
+                  full::ImpactParameterSoftPi,
                   full::CpaD1,
                   full::CpaD2,
                   full::Chi2PCA,
@@ -330,7 +326,7 @@ struct HfTreeCreatorTccToD0D0Pi {
           continue;
         }
       } catch (const std::runtime_error& error) {
-        LOG(info) << "Run time error found: " << error.what() << ". DCAFitterN cannot work, skipping the candidate.";
+        LOG(info) << "Run time error found: " << error.what() << ". DCAFitterN for first D0 cannot work, skipping the candidate.";
         hCandidatesD1->Fill(SVFitting::Fail);
         continue;
       }
@@ -362,7 +358,7 @@ struct HfTreeCreatorTccToD0D0Pi {
             continue;
           }
         } catch (const std::runtime_error& error) {
-          LOG(info) << "Run time error found: " << error.what() << ". DCAFitterN cannot work, skipping the candidate.";
+          LOG(info) << "Run time error found: " << error.what() << ". DCAFitterN for second D0 cannot work, skipping the candidate.";
           hCandidatesD2->Fill(SVFitting::Fail);
           continue;
         }
@@ -418,13 +414,13 @@ struct HfTreeCreatorTccToD0D0Pi {
               continue;
             }
           } catch (const std::runtime_error& error) {
-            LOG(info) << "Run time error found: " << error.what() << ". DCAFitterN for B cannot work, skipping the candidate.";
+            LOG(info) << "Run time error found: " << error.what() << ". DCAFitterN for Tcc cannot work, skipping the candidate.";
             hCandidatesTcc->Fill(SVFitting::Fail);
             continue;
           }
           hCandidatesTcc->Fill(SVFitting::FitOk);
 
-          dfTcc.propagateTracksToVertex();      // propagate the bachelor and D0 to the B+ vertex
+          dfTcc.propagateTracksToVertex();      // propagate the softpi and D0 pair to the Tcc vertex
           trackD1.getPxPyPzGlo(pVecD1New);      // momentum of D1 at the Tcc vertex
           trackD2.getPxPyPzGlo(pVecD2New);      // momentum of D2 at the Tcc vertex
           trackParCovPi.getPxPyPzGlo(pVecBach); // momentum of pi at the Tcc vertex
@@ -438,17 +434,13 @@ struct HfTreeCreatorTccToD0D0Pi {
           // This modifies track momenta!
           auto covMatrixPV = primaryVertex.getCov();
           hCovPVXX->Fill(covMatrixPV[0]);
-          o2::dataformats::DCA impactParameterD1_0;
-          o2::dataformats::DCA impactParameterD1_1;
-          o2::dataformats::DCA impactParameterD2_0;
-          o2::dataformats::DCA impactParameterD2_1;
+          o2::dataformats::DCA impactParameterD1;
+          o2::dataformats::DCA impactParameterD2;
+          o2::dataformats::DCA impactParameterSoftPi;
 
-          trackD1.propagateToDCA(primaryVertex, bz, &impactParameterD1_0);
-          trackD1.propagateToDCA(primaryVertex, bz, &impactParameterD1_1);
-          trackD2.propagateToDCA(primaryVertex, bz, &impactParameterD2_0);
-          trackD2.propagateToDCA(primaryVertex, bz, &impactParameterD2_1);
-
-          trackParCovPi.propagateToDCA(primaryVertex, bz, &impactParameterD1_1);
+          trackD1.propagateToDCA(primaryVertex, bz, &impactParameterD1);
+          trackD2.propagateToDCA(primaryVertex, bz, &impactParameterD2);
+          trackParCovPi.propagateToDCA(primaryVertex, bz, &impactParameterSoftPi);
 
           // get uncertainty of the decay length
           // double phi, theta;
@@ -513,8 +505,6 @@ struct HfTreeCreatorTccToD0D0Pi {
           deltaMassD01 = massKpipi1 - massD01;
           deltaMassD02 = massKpipi2 - massD02;
 
-          // std::array<float, 3> pVecD1{candidateD1.px(), candidateD1.py(), candidateD1.pz()};
-          // std::array<float, 3> pVecD2{candidateD2.px(), candidateD2.py(), candidateD2.pz()};
           auto arrayMomentaDDpi = std::array{pVecD1New, pVecD2New, pVecBach};
           const auto massD0D0Pi = RecoDecay::m(std::move(arrayMomentaDDpi), std::array{MassD0, MassD0, MassPiPlus});
           const auto deltaMassD0D0Pi = massD0D0Pi - (massD01 + massD02);
@@ -525,9 +515,6 @@ struct HfTreeCreatorTccToD0D0Pi {
           }
 
           rowCandidateLite(
-            candidateD1.pt(),
-            candidateD2.pt(),
-            trackPion.pt(),
             candidateD1.pxProng0(),
             candidateD1.pxProng1(),
             candidateD1.pyProng0(),
@@ -567,8 +554,9 @@ struct HfTreeCreatorTccToD0D0Pi {
             trackPion.tofNSigmaPi(),
             mlScoresD1[0],
             mlScoresD2[0],
-            candidateD1.decayLength(),
-            candidateD2.decayLength(),
+            impactParameterD1.getY(),
+            impactParameterD2.getY(),
+            impactParameterSoftPi.getY(),
             candidateD1.cpa(),
             candidateD2.cpa(),
             chi2PCA,
