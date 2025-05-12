@@ -319,14 +319,14 @@ struct HfTreeCreatorTccToD0D0Pi {
 
     for (const auto& candidateD1 : candidates) {
 
-      auto trackD1_0 = candidateD1.template prong0_as<TrkType>();
-      auto trackD1_1 = candidateD1.template prong1_as<TrkType>();
-      auto trackParVarD1_0 = getTrackParCov(trackD1_0);
-      auto trackParVarD1_1 = getTrackParCov(trackD1_1);
+      auto trackD1Prong0 = candidateD1.template prong0_as<TrkType>();
+      auto trackD1Prong1 = candidateD1.template prong1_as<TrkType>();
+      auto trackParVarD1Prong0 = getTrackParCov(trackD1Prong0);
+      auto trackParVarD1Prong1 = getTrackParCov(trackD1Prong1);
       // reconstruct the 2-prong secondary vertex
       hCandidatesD1->Fill(SVFitting::BeforeFit);
       try {
-        if (dfD1.process(trackParVarD1_0, trackParVarD1_1) == 0) {
+        if (dfD1.process(trackParVarD1Prong0, trackParVarD1Prong1) == 0) {
           continue;
         }
       } catch (const std::runtime_error& error) {
@@ -336,29 +336,29 @@ struct HfTreeCreatorTccToD0D0Pi {
       }
       hCandidatesD1->Fill(SVFitting::FitOk);
       const auto& vertexD1 = dfD1.getPCACandidatePos();
-      trackParVarD1_0.propagateTo(vertexD1[0], bz);
-      trackParVarD1_1.propagateTo(vertexD1[0], bz);
-      // Get pVec of tracks
-      std::array<float, 3> pVecD1_0 = {0};
-      std::array<float, 3> pVecD1_1 = {0};
-      dfD1.getTrack(0).getPxPyPzGlo(pVecD1_0);
-      dfD1.getTrack(1).getPxPyPzGlo(pVecD1_1);
-      // Get D0 momentum
-      std::array<float, 3> pVecD1 = RecoDecay::pVec(pVecD1_0, pVecD1_1);
+      trackParVarD1Prong0.propagateTo(vertexD1[0], bz);
+      trackParVarD1Prong1.propagateTo(vertexD1[0], bz);
+      // Get pVec of tracks of D1
+      std::array<float, 3> pVecD1Prong0 = {0};
+      std::array<float, 3> pVecD1Prong1 = {0};
+      dfD1.getTrack(0).getPxPyPzGlo(pVecD1Prong0);
+      dfD1.getTrack(1).getPxPyPzGlo(pVecD1Prong1);
+      // Get D1 momentum
+      std::array<float, 3> pVecD1 = RecoDecay::pVec(pVecD1Prong0, pVecD1Prong1);
 
       // build a D1 neutral track
-      auto trackD1 = o2::dataformats::V0(vertexD1, pVecD1, dfD1.calcPCACovMatrixFlat(), trackParVarD1_0, trackParVarD1_1);
+      auto trackD1 = o2::dataformats::V0(vertexD1, pVecD1, dfD1.calcPCACovMatrixFlat(), trackParVarD1Prong0, trackParVarD1Prong1);
 
       for (auto candidateD2 = candidateD1 + 1; candidateD2 != candidates.end(); ++candidateD2) {
 
-        auto trackD2_0 = candidateD2.template prong0_as<TrkType>();
-        auto trackD2_1 = candidateD2.template prong1_as<TrkType>();
-        auto trackParVarD2_0 = getTrackParCov(trackD2_0);
-        auto trackParVarD2_1 = getTrackParCov(trackD2_1);
+        auto trackD2Prong0 = candidateD2.template prong0_as<TrkType>();
+        auto trackD2Prong1 = candidateD2.template prong1_as<TrkType>();
+        auto trackParVarD2Prong0 = getTrackParCov(trackD2Prong0);
+        auto trackParVarD2Prong1 = getTrackParCov(trackD2Prong1);
         // reconstruct the 2-prong secondary vertex
         hCandidatesD2->Fill(SVFitting::BeforeFit);
         try {
-          if (dfD2.process(trackParVarD2_0, trackParVarD2_1) == 0) {
+          if (dfD2.process(trackParVarD2Prong0, trackParVarD2Prong1) == 0) {
             continue;
           }
         } catch (const std::runtime_error& error) {
@@ -368,18 +368,18 @@ struct HfTreeCreatorTccToD0D0Pi {
         }
         hCandidatesD2->Fill(SVFitting::FitOk);
         const auto& vertexD2 = dfD2.getPCACandidatePos();
-        trackParVarD2_0.propagateTo(vertexD2[0], bz);
-        trackParVarD2_1.propagateTo(vertexD2[0], bz);
-        // Get pVec of tracks
-        std::array<float, 3> pVecD2_0 = {0};
-        std::array<float, 3> pVecD2_1 = {0};
-        dfD2.getTrack(0).getPxPyPzGlo(pVecD2_0);
-        dfD2.getTrack(1).getPxPyPzGlo(pVecD2_1);
-        // Get D0 momentum
-        std::array<float, 3> pVecD2 = RecoDecay::pVec(pVecD2_0, pVecD2_1);
+        trackParVarD2Prong0.propagateTo(vertexD2[0], bz);
+        trackParVarD2Prong1.propagateTo(vertexD2[0], bz);
+        // Get pVec of tracks of D2
+        std::array<float, 3> pVecD2Prong0 = {0};
+        std::array<float, 3> pVecD2Prong1 = {0};
+        dfD2.getTrack(0).getPxPyPzGlo(pVecD2Prong0);
+        dfD2.getTrack(1).getPxPyPzGlo(pVecD2Prong1);
+        // Get D2 momentum
+        std::array<float, 3> pVecD2 = RecoDecay::pVec(pVecD2Prong0, pVecD2Prong1);
 
         // build a D2 neutral track
-        auto trackD2 = o2::dataformats::V0(vertexD2, pVecD2, dfD2.calcPCACovMatrixFlat(), trackParVarD2_0, trackParVarD2_1);
+        auto trackD2 = o2::dataformats::V0(vertexD2, pVecD2, dfD2.calcPCACovMatrixFlat(), trackParVarD2Prong0, trackParVarD2Prong1);
 
         for (const auto& trackId : trackIndices) {
           auto trackPion = trackId.template track_as<TrkType>();
@@ -494,17 +494,6 @@ struct HfTreeCreatorTccToD0D0Pi {
 
           // LOG(info) << " candidateD1.collisionId() " << candidateD1.collisionId()<<" massD01 "<<massD01<<" massD02 "<<massD02 <<"  trackPion.pt() "<< trackPion.pt();
 
-          auto trackPosD1Dau = track.rawIteratorAt(candidateD1.prong0Id()); // positive daughter D01
-          auto trackNegD1Dau = track.rawIteratorAt(candidateD1.prong1Id()); // negative daughter D01
-
-          auto trackPosD2Dau = track.rawIteratorAt(candidateD2.prong0Id()); // positive daughter D02
-          auto trackNegD2Dau = track.rawIteratorAt(candidateD2.prong1Id()); // negative daughter D02
-
-          std::array<float, 3> pVecPosD1Dau{trackPosD1Dau.pVector()};
-          std::array<float, 3> pVecNegD1Dau{trackNegD1Dau.pVector()};
-          std::array<float, 3> pVecPosD2Dau{trackPosD2Dau.pVector()};
-          std::array<float, 3> pVecNegD2Dau{trackNegD2Dau.pVector()};
-          std::array<float, 3> pVecSoftPion = {trackPion.pVector()};
           std::array<double, 2> massD1Daus{MassPiPlus, MassKPlus};
           std::array<double, 2> massD2Daus{MassPiPlus, MassKPlus};
 
@@ -518,15 +507,15 @@ struct HfTreeCreatorTccToD0D0Pi {
             massD2Daus[1] = MassPiPlus;
           }
 
-          auto massKpipi1 = RecoDecay::m(std::array{pVecPosD1Dau, pVecNegD1Dau, pVecSoftPion}, std::array{massD1Daus[0], massD1Daus[1], MassPiPlus});
-          auto massKpipi2 = RecoDecay::m(std::array{pVecPosD2Dau, pVecNegD2Dau, pVecSoftPion}, std::array{massD2Daus[0], massD2Daus[1], MassPiPlus});
+          auto massKpipi1 = RecoDecay::m(std::array{pVecD1Prong0, pVecD1Prong1, pVecBach}, std::array{massD1Daus[0], massD1Daus[1], MassPiPlus});
+          auto massKpipi2 = RecoDecay::m(std::array{pVecD2Prong0, pVecD2Prong1, pVecBach}, std::array{massD2Daus[0], massD2Daus[1], MassPiPlus});
 
           deltaMassD01 = massKpipi1 - massD01;
           deltaMassD02 = massKpipi2 - massD02;
 
           // std::array<float, 3> pVecD1{candidateD1.px(), candidateD1.py(), candidateD1.pz()};
           // std::array<float, 3> pVecD2{candidateD2.px(), candidateD2.py(), candidateD2.pz()};
-          auto arrayMomentaDDpi = std::array{pVecD1New, pVecD2New, pVecSoftPion};
+          auto arrayMomentaDDpi = std::array{pVecD1New, pVecD2New, pVecBach};
           const auto massD0D0Pi = RecoDecay::m(std::move(arrayMomentaDDpi), std::array{MassD0, MassD0, MassPiPlus});
           const auto deltaMassD0D0Pi = massD0D0Pi - (massD01 + massD02);
           const auto massD0D0Pair = RecoDecay::m(std::array{pVecD1New, pVecD2New}, std::array{MassD0, MassD0});
