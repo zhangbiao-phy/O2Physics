@@ -226,16 +226,16 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   /// Set standard preselection gap trigger (values taken from UD group)
   void setSGPreselection(SGCutParHolder& sgCuts)
   {
-    sgCuts.SetNDtcoll(MinNdtcoll);
-    sgCuts.SetMinNBCs(MinNBCs);
-    sgCuts.SetNTracks(MinNTracks, MaxNTracks);
-    sgCuts.SetMaxFITtime(MaxFITtime);
+    sgCuts.SetNDtcoll(kMinNDtColl);
+    sgCuts.SetMinNBCs(kMinNBCs);
+    sgCuts.SetNTracks(kMinNTracks, kMaxNTracks);
+    sgCuts.SetMaxFITtime(kMaxFITTimeNs);
 
-    sgCuts.SetFITAmpLimits({FITAmpFV0,
-                            FITAmpFT0A,
-                            FITAmpFT0C,
-                            FITAmpFDDA,
-                            FITAmpFDDC});
+    sgCuts.SetFITAmpLimits({kFITAmpFV0,
+                            kFITAmpFT0A,
+                            kFITAmpFT0C,
+                            kFITAmpFDDA,
+                            kFITAmpFDDC});
   }
 
   /// \brief Adds collision monitoring histograms in the histogram registry.
