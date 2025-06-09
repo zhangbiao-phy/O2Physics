@@ -201,16 +201,16 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   static constexpr char NameHistUPC[] = "hUPCollisions";
 
   // upc preselection
-  constexpr int MinNdtcoll = 1;       // Default number of sigma (NDtcoll)
-  constexpr int MinNBCs = 2;          // Minimum number of bunch crossings (NBCs)
-  constexpr int MinNTracks = 2;       // Minimum number of PV contributors
-  constexpr int MaxNTracks = 1000;    // Maximum number of PV contributors
-  constexpr float MaxFITtime = 34.f;  // Maximum FIT time in ns
-  constexpr float FITAmpFV0 = -1.f;   // FV0 amplitude
-  constexpr float FITAmpFT0A = 150.f; // Max FT0A amplitude
-  constexpr float FITAmpFT0C = 50.f;  // Max FT0C amplitude
-  constexpr float FITAmpFDDA = -1.f;  // FDDA amplitude
-  constexpr float FITAmpFDDC = -1.f;  // FDDC amplitude
+  static constexpr int MinNdtcoll = 1;       // Default number of sigma (NDtcoll)
+  static constexpr int MinNBCs = 2;          // Minimum number of bunch crossings (NBCs)
+  static constexpr int MinNTracks = 2;       // Minimum number of PV contributors
+  static constexpr int MaxNTracks = 1000;    // Maximum number of PV contributors
+  static constexpr float MaxFITtime = 34.f;  // Maximum FIT time in ns
+  static constexpr float FITAmpFV0 = -1.f;   // FV0 amplitude
+  static constexpr float FITAmpFT0A = 150.f; // Max FT0A amplitude
+  static constexpr float FITAmpFT0C = 50.f;  // Max FT0C amplitude
+  static constexpr float FITAmpFDDA = -1.f;  // FDDA amplitude
+  static constexpr float FITAmpFDDC = -1.f;  // FDDC amplitude
 
   std::shared_ptr<TH1> hCollisions, hSelCollisionsCent, hPosZBeforeEvSel, hPosZAfterEvSel, hPosXAfterEvSel, hPosYAfterEvSel, hNumPvContributorsAfterSel, hUPCollisions;
   std::shared_ptr<TH2> hCollisionsCentOcc;
