@@ -41,6 +41,7 @@
 #include "EventFiltering/ZorroSummary.h"
 
 #include "PWGHF/Core/CentralityEstimation.h"
+#include "PWGUD/Core/SGSelector.h"
 
 namespace o2::hf_occupancy
 {
@@ -108,10 +109,20 @@ enum EventRejection {
   NoCollInTimeRangeNarrow,
   NoCollInTimeRangeStandard,
   NoCollInRofStandard,
+  UpcEventCut,
   NEventRejection
 };
 
+// upc event type
+enum UPCEvent {
+  SingleGapA = 0,
+  SingleGapC = 1,
+  DoubleGap = 2,
+  NUPCEventRejection
+};
+
 o2::framework::AxisSpec axisEvents = {EventRejection::NEventRejection, -0.5f, +EventRejection::NEventRejection - 0.5f, ""};
+o2::framework::AxisSpec axisUPCEvents = {UPCEvent::NUPCEventRejection, -0.5f, +UPCEvent::NUPCEventRejection - 0.5f, ""};
 
 /// \brief Function to put labels on monitoring histogram
 /// \param hRejection monitoring histogram
@@ -137,6 +148,7 @@ void setEventRejectionLabels(Histo& hRejection, std::string softwareTriggerLabel
   hRejection->GetXaxis()->SetBinLabel(EventRejection::NoCollInTimeRangeNarrow + 1, "No coll timerange narrow");
   hRejection->GetXaxis()->SetBinLabel(EventRejection::NoCollInTimeRangeStandard + 1, "No coll timerange strict");
   hRejection->GetXaxis()->SetBinLabel(EventRejection::NoCollInRofStandard + 1, "No coll in ROF std");
+  hRejection->GetXaxis()->SetBinLabel(EventRejection::UpcEventCut + 1, "UPC event selection");
 }
 
 struct HfEventSelection : o2::framework::ConfigurableGroup {
@@ -145,6 +157,7 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   o2::framework::Configurable<float> centralityMin{"centralityMin", 0., "Minimum centrality"};
   o2::framework::Configurable<float> centralityMax{"centralityMax", 100., "Maximum centrality"};
   o2::framework::Configurable<bool> useSel8Trigger{"useSel8Trigger", true, "Apply the sel8 event selection"};
+  o2::framework::Configurable<bool> useUpcTrigger{"useUpcTrigger", true, "Apply the upc event selection"};
   o2::framework::Configurable<int> triggerClass{"triggerClass", -1, "Trigger class different from sel8 (e.g. kINT7 for Run2) used only if useSel8Trigger is false"};
   o2::framework::Configurable<bool> useTvxTrigger{"useTvxTrigger", true, "Apply TVX trigger sel"};
   o2::framework::Configurable<bool> useTimeFrameBorderCut{"useTimeFrameBorderCut", true, "Apply TF border cut"};
@@ -172,6 +185,10 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   o2::framework::Configurable<bool> rctCheckZDC{"rctCheckZDC", false, "RCT flag to check whether the ZDC is present or not"};
   o2::framework::Configurable<bool> rctTreatLimitedAcceptanceAsBad{"rctTreatLimitedAcceptanceAsBad", false, "RCT flag to reject events with limited acceptance for selected detectors"};
 
+  //  SG selector
+  SGSelector sgSelector;
+  SGCutParHolder sgCuts = SGCutParHolder();
+
   // histogram names
   static constexpr char NameHistCollisions[] = "hCollisions";
   static constexpr char NameHistSelCollisionsCent[] = "hSelCollisionsCent";
@@ -181,8 +198,9 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   static constexpr char NameHistPosYAfterEvSel[] = "hPosYAfterEvSel";
   static constexpr char NameHistNumPvContributorsAfterSel[] = "hNumPvContributorsAfterSel";
   static constexpr char NameHistCollisionsCentOcc[] = "hCollisionsCentOcc";
+  static constexpr char NameHistUPC[] = "hUPCollisions";
 
-  std::shared_ptr<TH1> hCollisions, hSelCollisionsCent, hPosZBeforeEvSel, hPosZAfterEvSel, hPosXAfterEvSel, hPosYAfterEvSel, hNumPvContributorsAfterSel;
+  std::shared_ptr<TH1> hCollisions, hSelCollisionsCent, hPosZBeforeEvSel, hPosZAfterEvSel, hPosXAfterEvSel, hPosYAfterEvSel, hNumPvContributorsAfterSel, hUPCollisions;
   std::shared_ptr<TH2> hCollisionsCentOcc;
 
   // util to retrieve the RCT info from CCDB
@@ -192,6 +210,23 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   Zorro zorro;
   o2::framework::OutputObj<ZorroSummary> zorroSummary{"zorroSummary"};
   int currentRun{-1};
+
+  /// Set standard preselection gap trigger (values taken from UD group)
+  void setSGCutsFromUD(SGCutParHolder& sgCuts)
+  {
+    sgCuts.SetNDtcoll(1);       // Number of sigma
+    sgCuts.SetMinNBCs(2);       // Minimum number of BCs
+    sgCuts.SetNTracks(2, 1000); // Min and max number of PV contributors
+    sgCuts.SetMaxFITtime(34.f); // Max FIT time in ns
+
+    sgCuts.SetFITAmpLimits({
+      -1.f,  // FV0
+      150.f, // FT0A
+      50.f,  // FT0C
+      -1.f,  // FDDA
+      -1.f   // FDDC
+    });
+  }
 
   /// \brief Adds collision monitoring histograms in the histogram registry.
   /// \param registry reference to the histogram registry
@@ -205,7 +240,7 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
     hPosYAfterEvSel = registry.add<TH1>(NameHistPosYAfterEvSel, "selected events;#it{y}_{prim. vtx.} (cm);entries", {o2::framework::HistType::kTH1D, {{200, -0.5, 0.5}}});
     hNumPvContributorsAfterSel = registry.add<TH1>(NameHistNumPvContributorsAfterSel, "selected events;#it{y}_{prim. vtx.} (cm);entries", {o2::framework::HistType::kTH1D, {{500, -0.5, 499.5}}});
     setEventRejectionLabels(hCollisions, softwareTrigger);
-
+    hUPCollisions = registry.add<TH1>(NameHistUPC, "HF upc counter;;# of upc events", {o2::framework::HistType::kTH1D, {axisUPCEvents}});
     const o2::framework::AxisSpec th2AxisCent{th2ConfigAxisCent, "Centrality"};
     const o2::framework::AxisSpec th2AxisOccupancy{th2ConfigAxisOccupancy, "Occupancy"};
     hCollisionsCentOcc = registry.add<TH2>(NameHistCollisionsCentOcc, "selected events;Centrality; Occupancy", {o2::framework::HistType::kTH2D, {th2AxisCent, th2AxisOccupancy}});
@@ -238,10 +273,9 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   /// \param registry reference to the histogram registry needed for zorro
   /// \return bitmask with the event selection criteria not satisfied by the collision
   template <bool useEvSel, o2::hf_centrality::CentralityEstimator centEstimator, typename BCs, typename Coll>
-  uint16_t getHfCollisionRejectionMask(const Coll& collision, float& centrality, o2::framework::Service<o2::ccdb::BasicCCDBManager> const& ccdb, o2::framework::HistogramRegistry& registry)
+  uint32_t getHfCollisionRejectionMask(const Coll& collision, float& centrality, o2::framework::Service<o2::ccdb::BasicCCDBManager> const& ccdb, o2::framework::HistogramRegistry& registry, const BCs& bcs)
   {
-    uint16_t rejectionMask{0}; // 16 bits, in case new ev. selections will be added
-
+    uint32_t rejectionMask{0}; // 32 bits, in case new ev. selections will be added
     if constexpr (centEstimator != o2::hf_centrality::CentralityEstimator::None) {
       centrality = o2::hf_centrality::getCentralityColl(collision, centEstimator);
       if (centrality < centralityMin || centrality > centralityMax) {
@@ -297,6 +331,26 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
           SETBIT(rejectionMask, EventRejection::Occupancy);
         }
       }
+
+      /// upc selection
+      if (useUpcTrigger) {
+        setSGCutsFromUD(sgCuts);
+        auto bc = collision.template foundBC_as<BCs>();
+        auto bcRange = udhelpers::compatibleBCs(collision, sgCuts.NDtcoll(), bcs, sgCuts.minNBCs());
+        auto isSGEvent = sgSelector.IsSelected(sgCuts, collision, bcRange, bc);
+        int issgevent = isSGEvent.value;
+        if (issgevent > 2) {
+          SETBIT(rejectionMask, EventRejection::UpcEventCut);
+        } else {
+          if (issgevent == UPCEvent::SingleGapA) {
+            hUPCollisions->Fill(UPCEvent::SingleGapA);
+          } else if (issgevent == UPCEvent::SingleGapC) {
+            hUPCollisions->Fill(UPCEvent::SingleGapC);
+          } else if (issgevent == UPCEvent::DoubleGap) {
+            hUPCollisions->Fill(UPCEvent::DoubleGap);
+          }
+        }
+      }
     }
 
     /// number of PV contributors
@@ -345,7 +399,7 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   /// \param collision analysed collision
   /// \param rejectionMask bitmask storing the info about which ev. selections are not satisfied by the collision
   template <typename Coll>
-  void fillHistograms(Coll const& collision, const uint16_t rejectionMask, float& centrality, float occupancy = -1)
+  void fillHistograms(Coll const& collision, const uint32_t rejectionMask, float& centrality, float occupancy = -1)
   {
     hCollisions->Fill(EventRejection::None);
     const float posZ = collision.posZ();
@@ -355,6 +409,7 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
       if (TESTBIT(rejectionMask, reason)) {
         return;
       }
+
       hCollisions->Fill(reason);
     }
 
@@ -464,9 +519,9 @@ struct HfEventSelectionMc {
   /// \param centrality centrality variable to be set in this function
   /// \return a bitmask with the event selections not satisfied by the analysed collision
   template <typename TBc, o2::hf_centrality::CentralityEstimator centEstimator, typename CCs, typename TMcColl>
-  uint16_t getHfMcCollisionRejectionMask(TMcColl const& mcCollision, CCs const& collSlice, float& centrality)
+  uint32_t getHfMcCollisionRejectionMask(TMcColl const& mcCollision, CCs const& collSlice, float& centrality)
   {
-    uint16_t rejectionMask{0};
+    uint32_t rejectionMask{0};
     float zPv = mcCollision.posZ();
     auto bc = mcCollision.template bc_as<TBc>();
 
@@ -515,7 +570,7 @@ struct HfEventSelectionMc {
   /// \param collision analysed collision
   /// \param rejectionMask bitmask storing the info about which ev. selections are not satisfied by the collision
   template <o2::hf_centrality::CentralityEstimator centEstimator, typename Coll>
-  void fillHistograms(Coll const& mcCollision, const uint16_t rejectionMask, int nSplitColl = 0)
+  void fillHistograms(Coll const& mcCollision, const uint32_t rejectionMask, int nSplitColl = 0)
   {
     hParticles->Fill(EventRejection::None);
 
