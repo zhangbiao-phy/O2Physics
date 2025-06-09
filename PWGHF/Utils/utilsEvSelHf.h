@@ -200,6 +200,18 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   static constexpr char NameHistCollisionsCentOcc[] = "hCollisionsCentOcc";
   static constexpr char NameHistUPC[] = "hUPCollisions";
 
+  // upc preselection
+  constexpr int MinNdtcoll = 1;       // Default number of sigma (NDtcoll)
+  constexpr int MinNBCs = 2;          // Minimum number of bunch crossings (NBCs)
+  constexpr int MinNTracks = 2;       // Minimum number of PV contributors
+  constexpr int MaxNTracks = 1000;    // Maximum number of PV contributors
+  constexpr float MaxFITtime = 34.f;  // Maximum FIT time in ns
+  constexpr float FITAmpFV0 = -1.f;   // FV0 amplitude
+  constexpr float FITAmpFT0A = 150.f; // Max FT0A amplitude
+  constexpr float FITAmpFT0C = 50.f;  // Max FT0C amplitude
+  constexpr float FITAmpFDDA = -1.f;  // FDDA amplitude
+  constexpr float FITAmpFDDC = -1.f;  // FDDC amplitude
+
   std::shared_ptr<TH1> hCollisions, hSelCollisionsCent, hPosZBeforeEvSel, hPosZAfterEvSel, hPosXAfterEvSel, hPosYAfterEvSel, hNumPvContributorsAfterSel, hUPCollisions;
   std::shared_ptr<TH2> hCollisionsCentOcc;
 
@@ -214,18 +226,16 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   /// Set standard preselection gap trigger (values taken from UD group)
   void setSGCutsFromUD(SGCutParHolder& sgCuts)
   {
-    sgCuts.SetNDtcoll(1);       // Number of sigma
-    sgCuts.SetMinNBCs(2);       // Minimum number of BCs
-    sgCuts.SetNTracks(2, 1000); // Min and max number of PV contributors
-    sgCuts.SetMaxFITtime(34.f); // Max FIT time in ns
+    sgCuts.SetNDtcoll(MinNdtcoll);
+    sgCuts.SetMinNBCs(MinNBCs);
+    sgCuts.SetNTracks(MinNTracks, MaxNTracks);
+    sgCuts.SetMaxFITtime(MaxFITtime);
 
-    sgCuts.SetFITAmpLimits({
-      -1.f,  // FV0
-      150.f, // FT0A
-      50.f,  // FT0C
-      -1.f,  // FDDA
-      -1.f   // FDDC
-    });
+    sgCuts.SetFITAmpLimits({FITAmpFV0,
+                            FITAmpFT0A,
+                            FITAmpFT0C,
+                            FITAmpFDDA,
+                            FITAmpFDDC});
   }
 
   /// \brief Adds collision monitoring histograms in the histogram registry.
@@ -339,7 +349,7 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
         auto bcRange = udhelpers::compatibleBCs(collision, sgCuts.NDtcoll(), bcs, sgCuts.minNBCs());
         auto isSGEvent = sgSelector.IsSelected(sgCuts, collision, bcRange, bc);
         int issgevent = isSGEvent.value;
-        if (issgevent > 2) {
+        if (issgevent > UPCEvent::DoubleGap) {
           SETBIT(rejectionMask, EventRejection::UpcEventCut);
         } else {
           if (issgevent == UPCEvent::SingleGapA) {
