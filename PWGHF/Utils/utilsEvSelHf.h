@@ -114,15 +114,15 @@ enum EventRejection {
 };
 
 // upc event type
-enum UPCEvent {
-  SingleGapA = 0,
-  SingleGapC = 1,
-  DoubleGap = 2,
-  NUPCEventRejection
+enum UPCEventType {
+  kSingleGapA,
+  kSingleGapC,
+  kDoubleGap,
+  kNEventTypes
 };
 
 o2::framework::AxisSpec axisEvents = {EventRejection::NEventRejection, -0.5f, +EventRejection::NEventRejection - 0.5f, ""};
-o2::framework::AxisSpec axisUPCEvents = {UPCEvent::NUPCEventRejection, -0.5f, +UPCEvent::NUPCEventRejection - 0.5f, ""};
+o2::framework::AxisSpec axisUPCEvents = {UPCEvent::kNEventTypes, -0.5f, +UPCEvent::kNEventTypes - 0.5f, ""};
 
 /// \brief Function to put labels on monitoring histogram
 /// \param hRejection monitoring histogram
@@ -157,7 +157,7 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   o2::framework::Configurable<float> centralityMin{"centralityMin", 0., "Minimum centrality"};
   o2::framework::Configurable<float> centralityMax{"centralityMax", 100., "Maximum centrality"};
   o2::framework::Configurable<bool> useSel8Trigger{"useSel8Trigger", true, "Apply the sel8 event selection"};
-  o2::framework::Configurable<bool> useUpcTrigger{"useUpcTrigger", true, "Apply the upc event selection"};
+  o2::framework::Configurable<bool> useUpcTrigger{"useUpcTrigger", false, "Apply the upc event selection"};
   o2::framework::Configurable<int> triggerClass{"triggerClass", -1, "Trigger class different from sel8 (e.g. kINT7 for Run2) used only if useSel8Trigger is false"};
   o2::framework::Configurable<bool> useTvxTrigger{"useTvxTrigger", true, "Apply TVX trigger sel"};
   o2::framework::Configurable<bool> useTimeFrameBorderCut{"useTimeFrameBorderCut", true, "Apply TF border cut"};
@@ -200,17 +200,17 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   static constexpr char NameHistCollisionsCentOcc[] = "hCollisionsCentOcc";
   static constexpr char NameHistUPC[] = "hUPCollisions";
 
-  // upc preselection
-  static constexpr int MinNdtcoll = 1;       // Default number of sigma (NDtcoll)
-  static constexpr int MinNBCs = 2;          // Minimum number of bunch crossings (NBCs)
-  static constexpr int MinNTracks = 2;       // Minimum number of PV contributors
-  static constexpr int MaxNTracks = 1000;    // Maximum number of PV contributors
-  static constexpr float MaxFITtime = 34.f;  // Maximum FIT time in ns
-  static constexpr float FITAmpFV0 = -1.f;   // FV0 amplitude
-  static constexpr float FITAmpFT0A = 150.f; // Max FT0A amplitude
-  static constexpr float FITAmpFT0C = 50.f;  // Max FT0C amplitude
-  static constexpr float FITAmpFDDA = -1.f;  // FDDA amplitude
-  static constexpr float FITAmpFDDC = -1.f;  // FDDC amplitude
+  // UPC preselection
+  static constexpr int kMinNDtColl{1};        // Miminimum number of bunch crossings around the collision of interest
+  static constexpr int kMinNBCs{2};           // Minimum number of bunch crossings
+  static constexpr int kMinNTracks{2};        // Minimum number of PV contributors
+  static constexpr int kMaxNTracks{1000};     // Maximum number of PV contributors
+  static constexpr float kMaxFITTimeNs{34.f}; // Maximum FIT time in ns
+  static constexpr float kFITAmpFV0{-1.f};    // FV0 amplitude threshold
+  static constexpr float kFITAmpFT0A{150.f};  // Maximum FT0A amplitude
+  static constexpr float kFITAmpFT0C{50.f};   // Maximum FT0C amplitude
+  static constexpr float kFITAmpFDDA{-1.f};   // FDDA amplitude threshold
+  static constexpr float kFITAmpFDDC{-1.f};   // FDDC amplitude threshold
 
   std::shared_ptr<TH1> hCollisions, hSelCollisionsCent, hPosZBeforeEvSel, hPosZAfterEvSel, hPosXAfterEvSel, hPosYAfterEvSel, hNumPvContributorsAfterSel, hUPCollisions;
   std::shared_ptr<TH2> hCollisionsCentOcc;
@@ -224,7 +224,7 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   int currentRun{-1};
 
   /// Set standard preselection gap trigger (values taken from UD group)
-  void setSGCutsFromUD(SGCutParHolder& sgCuts)
+  void setSGPreselection(SGCutParHolder& sgCuts)
   {
     sgCuts.SetNDtcoll(MinNdtcoll);
     sgCuts.SetMinNBCs(MinNBCs);
@@ -344,7 +344,7 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
 
       /// upc selection
       if (useUpcTrigger) {
-        setSGCutsFromUD(sgCuts);
+        setSGPreselection(sgCuts);
         auto bc = collision.template foundBC_as<BCs>();
         auto bcRange = udhelpers::compatibleBCs(collision, sgCuts.NDtcoll(), bcs, sgCuts.minNBCs());
         auto isSGEvent = sgSelector.IsSelected(sgCuts, collision, bcRange, bc);

@@ -193,8 +193,6 @@ struct HfTrackIndexSkimCreatorTagSelCollisions {
   /// Event selection without trigger selection
   void processNoTrigSel(aod::Collision const& collision, BCs const& bcs)
   {
-    LOGF(info, " in processNoTrigSel xxxxxxxxxxxxxxxx");
-
     selectCollision<false, CentralityEstimator::None>(collision, bcs);
   }
   PROCESS_SWITCH(HfTrackIndexSkimCreatorTagSelCollisions, processNoTrigSel, "Do not use trigger selection", true);
