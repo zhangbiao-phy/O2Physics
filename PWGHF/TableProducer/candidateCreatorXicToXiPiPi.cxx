@@ -116,7 +116,6 @@ struct HfCandidateCreatorXicToXiPiPi {
   using KFCascFull = soa::Join<aod::KFCascDatas, aod::KFCascCovs>;
   using TracksWCovDcaPidPrPi = soa::Join<aod::TracksWCovDca, aod::TracksPidPr, aod::TracksPidPi>;
   using TracksWCovExtraPidPrPi = soa::Join<aod::TracksWCovExtra, aod::TracksPidPr, aod::TracksPidPi>;
-  using BCs = soa::Join<aod::BCsWithTimestamps, aod::BcSels, aod::Run3MatchedToBCSparse>;
 
   HistogramRegistry registry{"registry"};
 
@@ -183,7 +182,7 @@ struct HfCandidateCreatorXicToXiPiPi {
                                       CascadesLinked const&,
                                       CascFull const&,
                                       TracksWCovDcaPidPrPi const&,
-                                      BCs const& bcs)
+                                      aod::BCFullInfos const& bcs)
   {
     // loop over triplets of track indices
     for (const auto& rowTrackIndexXicPlus : rowsTrackIndexXicPlus) {
@@ -194,7 +193,7 @@ struct HfCandidateCreatorXicToXiPiPi {
       // check if the event is selected
       auto collision = rowTrackIndexXicPlus.collision_as<Collision>();
       float centrality{-1.f};
-      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, BCs>(collision, centrality, ccdb, registry, bcs);
+      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, aod::BCFullInfos>(collision, centrality, ccdb, registry, bcs);
       if (rejectionMask != 0) {
         /// at least one event selection not satisfied --> reject the candidate
         continue;
@@ -228,7 +227,7 @@ struct HfCandidateCreatorXicToXiPiPi {
       //----------------------Set the magnetic field from ccdb---------------------------------------
       /// The static instance of the propagator was already modified in the HFTrackIndexSkimCreator,
       /// but this is not true when running on Run2 data/MC already converted into AO2Ds.
-      auto bc = collision.template bc_as<BCs>();
+      auto bc = collision.template bc_as<aod::BCFullInfos>();
       if (runNumber != bc.runNumber()) {
         LOG(info) << ">>>>>>>>>>>> Current run number: " << runNumber;
         initCCDB(bc, runNumber, ccdb, isRun2 ? ccdbPathGrp : ccdbPathGrpMag, lut, isRun2);
@@ -424,7 +423,7 @@ struct HfCandidateCreatorXicToXiPiPi {
                                        KFCascadesLinked const&,
                                        KFCascFull const&,
                                        TracksWCovExtraPidPrPi const&,
-                                       BCs const& bcs)
+                                       aod::BCFullInfos const& bcs)
   {
     // loop over triplets of track indices
     for (const auto& rowTrackIndexXicPlus : rowsTrackIndexXicPlus) {
@@ -435,7 +434,7 @@ struct HfCandidateCreatorXicToXiPiPi {
       // check if the event is selected
       auto collision = rowTrackIndexXicPlus.collision_as<Collision>();
       float centrality{-1.f};
-      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, BCs>(collision, centrality, ccdb, registry, bcs);
+      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, aod::BCFullInfos>(collision, centrality, ccdb, registry, bcs);
       if (rejectionMask != 0) {
         /// at least one event selection not satisfied --> reject the candidate
         continue;
@@ -469,7 +468,7 @@ struct HfCandidateCreatorXicToXiPiPi {
       //----------------------Set the magnetic field from ccdb-----------------------------
       /// The static instance of the propagator was already modified in the HFTrackIndexSkimCreator,
       /// but this is not true when running on Run2 data/MC already converted into AO2Ds.
-      auto bc = collision.template bc_as<BCs>();
+      auto bc = collision.template bc_as<aod::BCFullInfos>();
       if (runNumber != bc.runNumber()) {
         LOG(info) << ">>>>>>>>>>>> Current run number: " << runNumber;
         initCCDB(bc, runNumber, ccdb, isRun2 ? ccdbPathGrp : ccdbPathGrpMag, lut, isRun2);
@@ -728,7 +727,7 @@ struct HfCandidateCreatorXicToXiPiPi {
                                          CascadesLinked const& cascadesLinked,
                                          CascFull const& cascadesFull,
                                          TracksWCovDcaPidPrPi const& tracks,
-                                         BCs const& bcs)
+                                         aod::BCFullInfos const& bcs)
   {
     runXicplusCreatorWithDcaFitter<o2::hf_centrality::CentralityEstimator::None>(collisions, rowsTrackIndexXicPlus, cascadesLinked, cascadesFull, tracks, bcs);
   }
@@ -739,7 +738,7 @@ struct HfCandidateCreatorXicToXiPiPi {
                                            CascadesLinked const& cascadesLinked,
                                            CascFull const& cascadesFull,
                                            TracksWCovDcaPidPrPi const& tracks,
-                                           BCs const& bcs)
+                                           aod::BCFullInfos const& bcs)
   {
     runXicplusCreatorWithDcaFitter<o2::hf_centrality::CentralityEstimator::FT0C>(collisions, rowsTrackIndexXicPlus, cascadesLinked, cascadesFull, tracks, bcs);
   }
@@ -750,7 +749,7 @@ struct HfCandidateCreatorXicToXiPiPi {
                                            CascadesLinked const& cascadesLinked,
                                            CascFull const& cascadesFull,
                                            TracksWCovDcaPidPrPi const& tracks,
-                                           BCs const& bcs)
+                                           aod::BCFullInfos const& bcs)
   {
     runXicplusCreatorWithDcaFitter<o2::hf_centrality::CentralityEstimator::FT0M>(collisions, rowsTrackIndexXicPlus, cascadesLinked, cascadesFull, tracks, bcs);
   }
@@ -767,7 +766,7 @@ struct HfCandidateCreatorXicToXiPiPi {
                                           KFCascadesLinked const& kfCascadesLinked,
                                           KFCascFull const& kfCascadesFull,
                                           TracksWCovExtraPidPrPi const& tracks,
-                                          BCs const& bcs)
+                                          aod::BCFullInfos const& bcs)
   {
     runXicplusCreatorWithKFParticle<o2::hf_centrality::CentralityEstimator::None>(collisions, rowsTrackIndexXicPlus, kfCascadesLinked, kfCascadesFull, tracks, bcs);
   }
@@ -778,7 +777,7 @@ struct HfCandidateCreatorXicToXiPiPi {
                                             KFCascadesLinked const& kfCascadesLinked,
                                             KFCascFull const& kfCascadesFull,
                                             TracksWCovExtraPidPrPi const& tracks,
-                                            BCs const& bcs)
+                                            aod::BCFullInfos const& bcs)
   {
     runXicplusCreatorWithKFParticle<o2::hf_centrality::CentralityEstimator::FT0C>(collisions, rowsTrackIndexXicPlus, kfCascadesLinked, kfCascadesFull, tracks, bcs);
   }
@@ -789,7 +788,7 @@ struct HfCandidateCreatorXicToXiPiPi {
                                             KFCascadesLinked const& kfCascadesLinked,
                                             KFCascFull const& kfCascadesFull,
                                             TracksWCovExtraPidPrPi const& tracks,
-                                            BCs const& bcs)
+                                            aod::BCFullInfos const& bcs)
   {
     runXicplusCreatorWithKFParticle<o2::hf_centrality::CentralityEstimator::FT0M>(collisions, rowsTrackIndexXicPlus, kfCascadesLinked, kfCascadesFull, tracks, bcs);
   }
@@ -801,7 +800,7 @@ struct HfCandidateCreatorXicToXiPiPi {
   ///                                                     ///
   ///////////////////////////////////////////////////////////
 
-  void processCollisions(soa::Join<aod::Collisions, aod::EvSels> const& collisions, BCs const& bcs)
+  void processCollisions(soa::Join<aod::Collisions, aod::EvSels> const& collisions, aod::BCFullInfos const& bcs)
   {
     /// loop over collisions
     for (const auto& collision : collisions) {
@@ -809,7 +808,7 @@ struct HfCandidateCreatorXicToXiPiPi {
       /// bitmask with event. selection info
       float centrality{-1.f};
       float occupancy = getOccupancyColl(collision, OccupancyEstimator::Its);
-      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, CentralityEstimator::None, BCs>(collision, centrality, ccdb, registry, bcs);
+      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, CentralityEstimator::None, aod::BCFullInfos>(collision, centrality, ccdb, registry, bcs);
 
       /// monitor the satisfied event selections
       hfEvSel.fillHistograms(collision, rejectionMask, centrality, occupancy);
@@ -818,7 +817,7 @@ struct HfCandidateCreatorXicToXiPiPi {
   }
   PROCESS_SWITCH(HfCandidateCreatorXicToXiPiPi, processCollisions, "Collision monitoring - no centrality", false);
 
-  void processCollisionsCentFT0C(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Cs> const& collisions, BCs const& bcs)
+  void processCollisionsCentFT0C(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Cs> const& collisions, aod::BCFullInfos const& bcs)
   {
     /// loop over collisions
     for (const auto& collision : collisions) {
@@ -826,7 +825,7 @@ struct HfCandidateCreatorXicToXiPiPi {
       /// bitmask with event. selection info
       float centrality{-1.f};
       float occupancy = getOccupancyColl(collision, OccupancyEstimator::Its);
-      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, CentralityEstimator::FT0C, BCs>(collision, centrality, ccdb, registry, bcs);
+      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, CentralityEstimator::FT0C, aod::BCFullInfos>(collision, centrality, ccdb, registry, bcs);
 
       /// monitor the satisfied event selections
       hfEvSel.fillHistograms(collision, rejectionMask, centrality, occupancy);
@@ -835,7 +834,7 @@ struct HfCandidateCreatorXicToXiPiPi {
   }
   PROCESS_SWITCH(HfCandidateCreatorXicToXiPiPi, processCollisionsCentFT0C, "Collision monitoring - FT0C centrality", false);
 
-  void processCollisionsCentFT0M(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms> const& collisions, BCs const& bcs)
+  void processCollisionsCentFT0M(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms> const& collisions, aod::BCFullInfos const& bcs)
   {
     /// loop over collisions
     for (const auto& collision : collisions) {
@@ -843,7 +842,7 @@ struct HfCandidateCreatorXicToXiPiPi {
       /// bitmask with event. selection info
       float centrality{-1.f};
       float occupancy = getOccupancyColl(collision, OccupancyEstimator::Its);
-      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, CentralityEstimator::FT0M, BCs>(collision, centrality, ccdb, registry, bcs);
+      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, CentralityEstimator::FT0M, aod::BCFullInfos>(collision, centrality, ccdb, registry, bcs);
 
       /// monitor the satisfied event selections
       hfEvSel.fillHistograms(collision, rejectionMask, centrality, occupancy);
@@ -874,7 +873,6 @@ struct HfCandidateCreatorXicToXiPiPiExpressions {
   using McCollisionsFT0Cs = soa::Join<aod::Collisions, aod::EvSels, aod::McCollisionLabels, aod::CentFT0Cs>;
   using McCollisionsFT0Ms = soa::Join<aod::Collisions, aod::EvSels, aod::McCollisionLabels, aod::CentFT0Ms>;
   using McCollisionsCentFT0Ms = soa::Join<aod::McCollisions, aod::McCentFT0Ms>;
-  using BCsInfo = soa::Join<aod::BCs, aod::Timestamps, aod::BcSels>;
 
   Preslice<aod::McParticles> mcParticlesPerMcCollision = aod::mcparticle::mcCollisionId;
   PresliceUnsorted<McCollisionsNoCents> colPerMcCollision = aod::mccollisionlabel::mcCollisionId;
@@ -911,7 +909,7 @@ struct HfCandidateCreatorXicToXiPiPiExpressions {
                      aod::McParticles const& mcParticles,
                      McCollisions const& mcCollisions,
                      CollInfos const& collInfos,
-                     BCsInfo const&)
+                     aod::BCFullInfos const&)
   {
     rowCandidateXic->bindExternalIndices(&tracks);
 
@@ -1037,14 +1035,14 @@ struct HfCandidateCreatorXicToXiPiPiExpressions {
       int nSplitColl = 0;
       if constexpr (centEstimator == o2::hf_centrality::CentralityEstimator::FT0C) {
         const auto collSlice = collInfos.sliceBy(colPerMcCollisionFT0C, mcCollision.globalIndex());
-        rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<BCsInfo, centEstimator>(mcCollision, collSlice, centrality);
+        rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<aod::BCFullInfos, centEstimator>(mcCollision, collSlice, centrality);
       } else if constexpr (centEstimator == o2::hf_centrality::CentralityEstimator::FT0M) {
         const auto collSlice = collInfos.sliceBy(colPerMcCollisionFT0M, mcCollision.globalIndex());
         nSplitColl = collSlice.size();
-        rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<BCsInfo, centEstimator>(mcCollision, collSlice, centrality);
+        rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<aod::BCFullInfos, centEstimator>(mcCollision, collSlice, centrality);
       } else if constexpr (centEstimator == o2::hf_centrality::CentralityEstimator::None) {
         const auto collSlice = collInfos.sliceBy(colPerMcCollision, mcCollision.globalIndex());
-        rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<BCsInfo, centEstimator>(mcCollision, collSlice, centrality);
+        rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<aod::BCFullInfos, centEstimator>(mcCollision, collSlice, centrality);
       }
       hfEvSelMc.fillHistograms<centEstimator>(mcCollision, rejectionMask, nSplitColl);
       if (rejectionMask != 0) {
@@ -1112,7 +1110,7 @@ struct HfCandidateCreatorXicToXiPiPiExpressions {
                  aod::McParticles const& mcParticles,
                  aod::McCollisions const& mcCollisions,
                  McCollisionsNoCents const& mcCollisionsNoCents,
-                 BCsInfo const& bcs)
+                 aod::BCFullInfos const& bcs)
   {
     runMcMatching<o2::hf_centrality::CentralityEstimator::None>(tracks, mcParticles, mcCollisions, mcCollisionsNoCents, bcs);
   }
@@ -1122,7 +1120,7 @@ struct HfCandidateCreatorXicToXiPiPiExpressions {
                          aod::McParticles const& mcParticles,
                          aod::McCollisions const& mcCollisions,
                          McCollisionsFT0Cs const& mcCollisionsFT0Cs,
-                         BCsInfo const& bcs)
+                         aod::BCFullInfos const& bcs)
   {
     runMcMatching<o2::hf_centrality::CentralityEstimator::FT0C>(tracks, mcParticles, mcCollisions, mcCollisionsFT0Cs, bcs);
   }
@@ -1132,7 +1130,7 @@ struct HfCandidateCreatorXicToXiPiPiExpressions {
                          aod::McParticles const& mcParticles,
                          McCollisionsCentFT0Ms const& mcCollisionsCentFT0Ms,
                          McCollisionsFT0Ms const& mcCollisionsFT0Ms,
-                         BCsInfo const& bcs)
+                         aod::BCFullInfos const& bcs)
   {
     runMcMatching<o2::hf_centrality::CentralityEstimator::FT0M>(tracks, mcParticles, mcCollisionsCentFT0Ms, mcCollisionsFT0Ms, bcs);
   }
