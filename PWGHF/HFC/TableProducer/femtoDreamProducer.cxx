@@ -160,7 +160,6 @@ struct HfFemtoDreamProducer {
   using FemtoHFMcTracks = soa::Join<aod::McTrackLabels, FemtoHFTracks>;
   using FemtoHFMcTrack = FemtoHFMcTracks::iterator;
   using GeneratedMc = soa::Filtered<soa::Join<aod::McParticles, aod::HfCand3ProngMcGen>>;
-  using BCs = soa::Join<aod::BCsWithTimestamps, aod::BcSels, aod::Run3MatchedToBCSparse>;
   Filter filterSelectCandidateLc = (aod::hf_sel_candidate_lc::isSelLcToPKPi >= selectionFlagLc || aod::hf_sel_candidate_lc::isSelLcToPiKP >= selectionFlagLc);
 
   HistogramRegistry qaRegistry{"QAHistos", {}, OutputObjHandlingPolicy::AnalysisObject};
@@ -235,7 +234,7 @@ struct HfFemtoDreamProducer {
   }
 
   /// Function to retrieve the nominal magnetic field in kG (0.1T) and convert it directly to T
-  void getMagneticFieldTesla(BCs::iterator bc)
+  void getMagneticFieldTesla(aod::BCFullInfos::iterator bc)
   {
     initCCDB(bc, runNumber, ccdb, !isRun3 ? ccdbPathGrp : ccdbPathGrpMag, lut, !isRun3);
   }
@@ -572,12 +571,12 @@ struct HfFemtoDreamProducer {
   }
 
   void processDataCharmHad(FemtoFullCollision const& col,
-                           BCs const& bcs,
+                           aod::BCFullInfos const& bcs,
                            FemtoHFTracks const& tracks,
                            soa::Filtered<CandidateLc> const& candidates)
   {
     // get magnetic field for run
-    getMagneticFieldTesla(col.bc_as<BCs>());
+    getMagneticFieldTesla(col.bc_as<aod::BCFullInfos>());
 
     fillCharmHadronTable<false, false>(col, tracks, candidates, bcs);
   }
@@ -585,14 +584,14 @@ struct HfFemtoDreamProducer {
                  "Provide experimental data for charm hadron femto", false);
 
   void processDataCharmHadWithML(FemtoFullCollision const& col,
-                                 BCs const& bcs,
+                                 aod::BCFullInfos const& bcs,
                                  FemtoHFTracks const& tracks,
                                  soa::Filtered<soa::Join<CandidateLc,
                                                          aod::HfMlLcToPKPi>> const& candidates)
   {
 
     // get magnetic field for run
-    getMagneticFieldTesla(col.bc_as<BCs>());
+    getMagneticFieldTesla(col.bc_as<aod::BCFullInfos>());
 
     fillCharmHadronTable<false, true>(col, tracks, candidates, bcs);
   }
@@ -600,27 +599,27 @@ struct HfFemtoDreamProducer {
                  "Provide experimental data for charm hadron femto with ml", false);
 
   void processMcCharmHad(FemtoFullCollisionMc const& col,
-                         BCs const& bcs,
+                         aod::BCFullInfos const& bcs,
                          FemtoHFMcTracks const& tracks,
                          aod::McParticles const&,
                          CandidateLcMc const& candidates)
   {
     // get magnetic field for run
-    getMagneticFieldTesla(col.bc_as<BCs>());
+    getMagneticFieldTesla(col.bc_as<aod::BCFullInfos>());
 
     fillCharmHadronTable<true, false>(col, tracks, candidates, bcs);
   }
   PROCESS_SWITCH(HfFemtoDreamProducer, processMcCharmHad, "Provide Mc for charm hadron", false);
 
   void processMcCharmHadWithML(FemtoFullCollisionMc const& col,
-                               BCs const& bcs,
+                               aod::BCFullInfos const& bcs,
                                FemtoHFMcTracks const& tracks,
                                aod::McParticles const&,
                                soa::Join<CandidateLcMc,
                                          aod::HfMlLcToPKPi> const& candidates)
   {
     // get magnetic field for run
-    getMagneticFieldTesla(col.bc_as<BCs>());
+    getMagneticFieldTesla(col.bc_as<aod::BCFullInfos>());
 
     fillCharmHadronTable<true, true>(col, tracks, candidates, bcs);
   }

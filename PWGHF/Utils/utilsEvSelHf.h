@@ -114,15 +114,15 @@ enum EventRejection {
 };
 
 // upc event type
-enum UPCEventType {
-  kSingleGapA,
-  kSingleGapC,
-  kDoubleGap,
-  kNEventTypes
+enum EventTypeUpc {
+  SingleGapA,
+  SingleGapC,
+  DoubleGap,
+  NEventTypes
 };
 
 o2::framework::AxisSpec axisEvents = {EventRejection::NEventRejection, -0.5f, +EventRejection::NEventRejection - 0.5f, ""};
-o2::framework::AxisSpec axisUPCEvents = {UPCEvent::kNEventTypes, -0.5f, +UPCEvent::kNEventTypes - 0.5f, ""};
+o2::framework::AxisSpec axisUPCEvents = {EventTypeUpc::NEventTypes, -0.5f, +EventTypeUpc::NEventTypes - 0.5f, ""};
 
 /// \brief Function to put labels on monitoring histogram
 /// \param hRejection monitoring histogram
@@ -148,7 +148,7 @@ void setEventRejectionLabels(Histo& hRejection, std::string softwareTriggerLabel
   hRejection->GetXaxis()->SetBinLabel(EventRejection::NoCollInTimeRangeNarrow + 1, "No coll timerange narrow");
   hRejection->GetXaxis()->SetBinLabel(EventRejection::NoCollInTimeRangeStandard + 1, "No coll timerange strict");
   hRejection->GetXaxis()->SetBinLabel(EventRejection::NoCollInRofStandard + 1, "No coll in ROF std");
-  hRejection->GetXaxis()->SetBinLabel(EventRejection::UpcEventCut + 1, "UPC event selection");
+  hRejection->GetXaxis()->SetBinLabel(EventRejection::UpcEventCut + 1, "UPC event");
 }
 
 struct HfEventSelection : o2::framework::ConfigurableGroup {
@@ -201,16 +201,16 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   static constexpr char NameHistUPC[] = "hUPCollisions";
 
   // UPC preselection
-  static constexpr int kMinNDtColl{1};        // Miminimum number of bunch crossings around the collision of interest
-  static constexpr int kMinNBCs{2};           // Minimum number of bunch crossings
-  static constexpr int kMinNTracks{2};        // Minimum number of PV contributors
-  static constexpr int kMaxNTracks{1000};     // Maximum number of PV contributors
-  static constexpr float kMaxFITTimeNs{34.f}; // Maximum FIT time in ns
-  static constexpr float kFITAmpFV0{-1.f};    // FV0 amplitude threshold
-  static constexpr float kFITAmpFT0A{150.f};  // Maximum FT0A amplitude
-  static constexpr float kFITAmpFT0C{50.f};   // Maximum FT0C amplitude
-  static constexpr float kFITAmpFDDA{-1.f};   // FDDA amplitude threshold
-  static constexpr float kFITAmpFDDC{-1.f};   // FDDC amplitude threshold
+  static constexpr int MinNDtColl{1};        // Miminimum number of bunch crossings around the collision of interest
+  static constexpr int MinNBCs{2};           // Minimum number of bunch crossings
+  static constexpr int MinNTracks{2};        // Minimum number of PV contributors
+  static constexpr int MaxNTracks{1000};     // Maximum number of PV contributors
+  static constexpr float MaxFITTimeNs{34.f}; // Maximum FIT time in ns
+  static constexpr float FITAmpFV0{-1.f};    // FV0 amplitude threshold
+  static constexpr float FITAmpFT0A{150.f};  // Maximum FT0A amplitude
+  static constexpr float FITAmpFT0C{50.f};   // Maximum FT0C amplitude
+  static constexpr float FITAmpFDDA{-1.f};   // FDDA amplitude threshold
+  static constexpr float FITAmpFDDC{-1.f};   // FDDC amplitude threshold
 
   std::shared_ptr<TH1> hCollisions, hSelCollisionsCent, hPosZBeforeEvSel, hPosZAfterEvSel, hPosXAfterEvSel, hPosYAfterEvSel, hNumPvContributorsAfterSel, hUPCollisions;
   std::shared_ptr<TH2> hCollisionsCentOcc;
@@ -226,16 +226,16 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   /// Set standard preselection gap trigger (values taken from UD group)
   void setSGPreselection(SGCutParHolder& sgCuts)
   {
-    sgCuts.SetNDtcoll(kMinNDtColl);
-    sgCuts.SetMinNBCs(kMinNBCs);
-    sgCuts.SetNTracks(kMinNTracks, kMaxNTracks);
-    sgCuts.SetMaxFITtime(kMaxFITTimeNs);
+    sgCuts.SetNDtcoll(MinNDtColl);
+    sgCuts.SetMinNBCs(MinNBCs);
+    sgCuts.SetNTracks(MinNTracks, MaxNTracks);
+    sgCuts.SetMaxFITtime(MaxFITTimeNs);
 
-    sgCuts.SetFITAmpLimits({kFITAmpFV0,
-                            kFITAmpFT0A,
-                            kFITAmpFT0C,
-                            kFITAmpFDDA,
-                            kFITAmpFDDC});
+    sgCuts.SetFITAmpLimits({FITAmpFV0,
+                            FITAmpFT0A,
+                            FITAmpFT0C,
+                            FITAmpFDDA,
+                            FITAmpFDDC});
   }
 
   /// \brief Adds collision monitoring histograms in the histogram registry.
@@ -349,15 +349,15 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
         auto bcRange = udhelpers::compatibleBCs(collision, sgCuts.NDtcoll(), bcs, sgCuts.minNBCs());
         auto isSGEvent = sgSelector.IsSelected(sgCuts, collision, bcRange, bc);
         int issgevent = isSGEvent.value;
-        if (issgevent > UPCEvent::DoubleGap) {
+        if (issgevent > EventTypeUpc::DoubleGap) {
           SETBIT(rejectionMask, EventRejection::UpcEventCut);
         } else {
-          if (issgevent == UPCEvent::SingleGapA) {
-            hUPCollisions->Fill(UPCEvent::SingleGapA);
-          } else if (issgevent == UPCEvent::SingleGapC) {
-            hUPCollisions->Fill(UPCEvent::SingleGapC);
-          } else if (issgevent == UPCEvent::DoubleGap) {
-            hUPCollisions->Fill(UPCEvent::DoubleGap);
+          if (issgevent == EventTypeUpc::SingleGapA) {
+            hUPCollisions->Fill(EventTypeUpc::SingleGapA);
+          } else if (issgevent == EventTypeUpc::SingleGapC) {
+            hUPCollisions->Fill(EventTypeUpc::SingleGapC);
+          } else if (issgevent == EventTypeUpc::DoubleGap) {
+            hUPCollisions->Fill(EventTypeUpc::DoubleGap);
           }
         }
       }
