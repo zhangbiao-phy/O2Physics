@@ -899,7 +899,7 @@ struct HfDataCreatorCharmHadPiReduced {
                        TTracks const&,
                        PParticles const& particlesMc,
                        uint64_t const& indexCollisionMaxNumContrib,
-                       aod::BCFullInfos const& bcs)
+                       aod::BCsWithTimestamps const&)
   {
     // helpers for ReducedTables filling
     int indexHfReducedCollision = hfReducedCollision.lastIndex() + 1;
@@ -913,7 +913,7 @@ struct HfDataCreatorCharmHadPiReduced {
     // Set the magnetic field from ccdb.
     // The static instance of the propagator was already modified in the HFTrackIndexSkimCreator,
     // but this is not true when running on Run2 data/MC already converted into AO2Ds.
-    auto bc = collision.template bc_as<aod::BCFullInfos>();
+    auto bc = collision.template bc_as<aod::BCsWithTimestamps>();
     if (runNumber != bc.runNumber()) {
       LOG(info) << ">>>>>>>>>>>> Current run number: " << runNumber;
       o2::parameters::GRPMagField* grpo = ccdb->getForTimeStamp<o2::parameters::GRPMagField>(ccdbPathGrpMag, bc.timestamp());
@@ -1258,7 +1258,7 @@ struct HfDataCreatorCharmHadPiReduced {
     }
     registry.fill(HIST("hEvents"), 1 + Event::CharmHadPiSelected);
     float centrality = -1.f;
-    uint16_t hfRejMap = hfEvSel.getHfCollisionRejectionMask<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, centrality, ccdb, registry, bcs);
+    uint16_t hfRejMap = hfEvSel.getHfCollisionRejectionMask<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, centrality, ccdb, registry);
     // fill collision table if it contains a DPi pair a minima
     hfReducedCollision(collision.posX(), collision.posY(), collision.posZ(), collision.numContrib(), hfRejMap, bz);
     hfReducedCollExtra(collision.covXX(), collision.covXY(), collision.covYY(),
@@ -1466,7 +1466,7 @@ struct HfDataCreatorCharmHadPiReduced {
                           CandsDplusFiltered const& candsC,
                           aod::TrackAssoc const& trackIndices,
                           TracksPidWithSel const& tracks,
-                          aod::BCFullInfos const& bcs)
+                          aod::BCsWithTimestamps const& bcs)
   {
     // store configurables needed for B0 workflow
     if (!isHfCandBhadConfigFilled) {
@@ -1480,7 +1480,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsDplusPerCollision, thisCollId);
@@ -1496,7 +1496,7 @@ struct HfDataCreatorCharmHadPiReduced {
                                 CandsDplusFilteredWithMl const& candsC,
                                 aod::TrackAssoc const& trackIndices,
                                 TracksPidWithSel const& tracks,
-                                aod::BCFullInfos const& bcs)
+                                aod::BCsWithTimestamps const& bcs)
   {
     // store configurables needed for B0 workflow
     if (!isHfCandBhadConfigFilled) {
@@ -1510,7 +1510,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsDplusPerCollisionWithMl, thisCollId);
@@ -1526,7 +1526,7 @@ struct HfDataCreatorCharmHadPiReduced {
                                   CandsDplusFiltered const& candsC,
                                   aod::TrackAssoc const& trackIndices,
                                   TracksPidWithSel const& tracks,
-                                  aod::BCFullInfos const& bcs)
+                                  aod::BCsWithTimestamps const& bcs)
   {
     // store configurables needed for B0 workflow
     if (!isHfCandBhadConfigFilled) {
@@ -1540,7 +1540,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsDplusPerCollision, thisCollId);
@@ -1556,7 +1556,7 @@ struct HfDataCreatorCharmHadPiReduced {
                                        CandsDplusFilteredWithMl const& candsC,
                                        aod::TrackAssoc const& trackIndices,
                                        TracksPidWithSel const& tracks,
-                                       aod::BCFullInfos const& bcs)
+                                       aod::BCsWithTimestamps const& bcs)
   {
     // store configurables needed for B0 workflow
     if (!isHfCandBhadConfigFilled) {
@@ -1570,7 +1570,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsDplusPerCollisionWithMl, thisCollId);
@@ -1586,7 +1586,7 @@ struct HfDataCreatorCharmHadPiReduced {
                        CandsDsFiltered const& candsC,
                        aod::TrackAssoc const& trackIndices,
                        TracksPidWithSel const& tracks,
-                       aod::BCFullInfos const& bcs)
+                       aod::BCsWithTimestamps const& bcs)
   {
     // store configurables needed for Bs workflow
     if (!isHfCandBhadConfigFilled) {
@@ -1600,7 +1600,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsDplusPerCollision, thisCollId);
@@ -1616,7 +1616,7 @@ struct HfDataCreatorCharmHadPiReduced {
                              CandsDsFilteredWithMl const& candsC,
                              aod::TrackAssoc const& trackIndices,
                              TracksPidWithSel const& tracks,
-                             aod::BCFullInfos const& bcs)
+                             aod::BCsWithTimestamps const& bcs)
   {
     // store configurables needed for Bs workflow
     if (!isHfCandBhadConfigFilled) {
@@ -1630,7 +1630,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsDplusPerCollisionWithMl, thisCollId);
@@ -1646,7 +1646,7 @@ struct HfDataCreatorCharmHadPiReduced {
                                CandsDsFiltered const& candsC,
                                aod::TrackAssoc const& trackIndices,
                                TracksPidWithSel const& tracks,
-                               aod::BCFullInfos const& bcs)
+                               aod::BCsWithTimestamps const& bcs)
   {
     // store configurables needed for Bs workflow
     if (!isHfCandBhadConfigFilled) {
@@ -1660,7 +1660,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsDplusPerCollision, thisCollId);
@@ -1676,7 +1676,7 @@ struct HfDataCreatorCharmHadPiReduced {
                                     CandsDsFilteredWithMl const& candsC,
                                     aod::TrackAssoc const& trackIndices,
                                     TracksPidWithSel const& tracks,
-                                    aod::BCFullInfos const& bcs)
+                                    aod::BCsWithTimestamps const& bcs)
   {
     // store configurables needed for Bs workflow
     if (!isHfCandBhadConfigFilled) {
@@ -1690,7 +1690,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsDplusPerCollisionWithMl, thisCollId);
@@ -1706,7 +1706,7 @@ struct HfDataCreatorCharmHadPiReduced {
                        CandsD0Filtered const& candsC,
                        aod::TrackAssoc const& trackIndices,
                        TracksPidWithSel const& tracks,
-                       aod::BCFullInfos const& bcs)
+                       aod::BCsWithTimestamps const& bcs)
   {
     // store configurables needed for B+ workflow
     if (!isHfCandBhadConfigFilled) {
@@ -1720,7 +1720,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsD0PerCollision, thisCollId);
@@ -1736,7 +1736,7 @@ struct HfDataCreatorCharmHadPiReduced {
                              CandsD0FilteredWithMl const& candsC,
                              aod::TrackAssoc const& trackIndices,
                              TracksPidWithSel const& tracks,
-                             aod::BCFullInfos const& bcs)
+                             aod::BCsWithTimestamps const& bcs)
   {
     // store configurables needed for B+ workflow
     if (!isHfCandBhadConfigFilled) {
@@ -1750,7 +1750,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsD0PerCollisionWithMl, thisCollId);
@@ -1766,7 +1766,7 @@ struct HfDataCreatorCharmHadPiReduced {
                                CandsD0Filtered const& candsC,
                                aod::TrackAssoc const& trackIndices,
                                TracksPidWithSel const& tracks,
-                               aod::BCFullInfos const& bcs)
+                               aod::BCsWithTimestamps const& bcs)
   {
     // store configurables needed for B+ workflow
     if (!isHfCandBhadConfigFilled) {
@@ -1780,7 +1780,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsD0PerCollision, thisCollId);
@@ -1796,7 +1796,7 @@ struct HfDataCreatorCharmHadPiReduced {
                                     CandsD0FilteredWithMl const& candsC,
                                     aod::TrackAssoc const& trackIndices,
                                     TracksPidWithSel const& tracks,
-                                    aod::BCFullInfos const& bcs)
+                                    aod::BCsWithTimestamps const& bcs)
   {
     // store configurables needed for B+ workflow
     if (!isHfCandBhadConfigFilled) {
@@ -1810,7 +1810,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsD0PerCollisionWithMl, thisCollId);
@@ -1826,7 +1826,7 @@ struct HfDataCreatorCharmHadPiReduced {
                        CandsLcFiltered const& candsC,
                        aod::TrackAssoc const& trackIndices,
                        TracksPidWithSel const& tracks,
-                       aod::BCFullInfos const& bcs)
+                       aod::BCsWithTimestamps const& bcs)
   {
     // store configurables needed for Lb workflow
     if (!isHfCandBhadConfigFilled) {
@@ -1840,7 +1840,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsLcPerCollision, thisCollId);
@@ -1856,7 +1856,7 @@ struct HfDataCreatorCharmHadPiReduced {
                              CandsLcFilteredWithMl const& candsC,
                              aod::TrackAssoc const& trackIndices,
                              TracksPidWithSel const& tracks,
-                             aod::BCFullInfos const& bcs)
+                             aod::BCsWithTimestamps const& bcs)
   {
     // store configurables needed for Lb workflow
     if (!isHfCandBhadConfigFilled) {
@@ -1870,7 +1870,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsLcPerCollisionWithMl, thisCollId);
@@ -1890,7 +1890,7 @@ struct HfDataCreatorCharmHadPiReduced {
                         aod::TrackAssoc const& trackIndices,
                         TracksPidWithSelAndMc const& tracks,
                         aod::McParticles const& particlesMc,
-                        aod::BCFullInfos const& bcs,
+                        aod::BCsWithTimestamps const& bcs,
                         McCollisions const&)
   {
     // store configurables needed for B0 workflow
@@ -1905,7 +1905,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsDplusPerCollision, thisCollId);
@@ -1925,7 +1925,7 @@ struct HfDataCreatorCharmHadPiReduced {
                               aod::TrackAssoc const& trackIndices,
                               TracksPidWithSelAndMc const& tracks,
                               aod::McParticles const& particlesMc,
-                              aod::BCFullInfos const& bcs,
+                              aod::BCsWithTimestamps const& bcs,
                               McCollisions const&)
   {
     // store configurables needed for B0 workflow
@@ -1940,7 +1940,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsDplusPerCollisionWithMl, thisCollId);
@@ -1960,7 +1960,7 @@ struct HfDataCreatorCharmHadPiReduced {
                      aod::TrackAssoc const& trackIndices,
                      TracksPidWithSelAndMc const& tracks,
                      aod::McParticles const& particlesMc,
-                     aod::BCFullInfos const& bcs,
+                     aod::BCsWithTimestamps const& bcs,
                      McCollisions const&)
   {
     // store configurables needed for Bs workflow
@@ -1975,7 +1975,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsDplusPerCollision, thisCollId);
@@ -1995,7 +1995,7 @@ struct HfDataCreatorCharmHadPiReduced {
                            aod::TrackAssoc const& trackIndices,
                            TracksPidWithSelAndMc const& tracks,
                            aod::McParticles const& particlesMc,
-                           aod::BCFullInfos const& bcs,
+                           aod::BCsWithTimestamps const& bcs,
                            McCollisions const&)
   {
     // store configurables needed for Bs workflow
@@ -2010,7 +2010,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsDplusPerCollisionWithMl, thisCollId);
@@ -2030,7 +2030,7 @@ struct HfDataCreatorCharmHadPiReduced {
                      aod::TrackAssoc const& trackIndices,
                      TracksPidWithSelAndMc const& tracks,
                      aod::McParticles const& particlesMc,
-                     aod::BCFullInfos const& bcs,
+                     aod::BCsWithTimestamps const& bcs,
                      McCollisions const&)
   {
     // store configurables needed for B+ workflow
@@ -2045,7 +2045,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsD0PerCollision, thisCollId);
@@ -2065,7 +2065,7 @@ struct HfDataCreatorCharmHadPiReduced {
                            aod::TrackAssoc const& trackIndices,
                            TracksPidWithSelAndMc const& tracks,
                            aod::McParticles const& particlesMc,
-                           aod::BCFullInfos const& bcs,
+                           aod::BCsWithTimestamps const& bcs,
                            McCollisions const&)
   {
     // store configurables needed for B+ workflow
@@ -2080,7 +2080,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsD0PerCollisionWithMl, thisCollId);
@@ -2100,7 +2100,7 @@ struct HfDataCreatorCharmHadPiReduced {
                      aod::TrackAssoc const& trackIndices,
                      TracksPidWithSelAndMc const& tracks,
                      aod::McParticles const& particlesMc,
-                     aod::BCFullInfos const& bcs,
+                     aod::BCsWithTimestamps const& bcs,
                      McCollisions const&)
   {
     // store configurables needed for Lb workflow
@@ -2115,7 +2115,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsLcPerCollision, thisCollId);
@@ -2135,7 +2135,7 @@ struct HfDataCreatorCharmHadPiReduced {
                            aod::TrackAssoc const& trackIndices,
                            TracksPidWithSelAndMc const& tracks,
                            aod::McParticles const& particlesMc,
-                           aod::BCFullInfos const& bcs,
+                           aod::BCsWithTimestamps const& bcs,
                            McCollisions const&)
   {
     // store configurables needed for Lb workflow
@@ -2150,7 +2150,7 @@ struct HfDataCreatorCharmHadPiReduced {
     int zvtxAndSel8CollAndSoftTrig{0};
     int allSelColl{0};
     for (const auto& collision : collisions) {
-      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry, bcs);
+      o2::hf_evsel::checkEvSel<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, hfEvSel, zvtxColl, sel8Coll, zvtxAndSel8Coll, zvtxAndSel8CollAndSoftTrig, allSelColl, ccdb, registry);
 
       auto thisCollId = collision.globalIndex();
       auto candsCThisColl = candsC.sliceBy(candsLcPerCollisionWithMl, thisCollId);

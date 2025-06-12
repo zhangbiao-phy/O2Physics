@@ -110,6 +110,7 @@ static constexpr std::string_view originNames[nOriginTypes] = {"Prompt", "NonPro
 /// - Momentum Conservation for these particles
 struct HfTaskMcValidationGen {
 
+  using BCsInfo = soa::Join<aod::BCs, aod::Timestamps, aod::BcSels>;
   using CollisionsNoCents = soa::Join<aod::Collisions, aod::EvSels, aod::McCollisionLabels>;
   using CollisionsFT0Cs = soa::Join<aod::Collisions, aod::EvSels, aod::McCollisionLabels, aod::CentFT0Cs>;
   using CollisionsFT0Ms = soa::Join<aod::Collisions, aod::EvSels, aod::McCollisionLabels, aod::CentFT0Ms>;
@@ -247,7 +248,7 @@ struct HfTaskMcValidationGen {
   }
 
   template <o2::hf_centrality::CentralityEstimator centEstimator, typename GenColl, typename Particles, typename RecoColls>
-  void runCheckGenParticles(GenColl const& mcCollision, Particles const& mcParticles, RecoColls const& recoCollisions, aod::BCFullInfos const&, std::array<int, nChannels>& counterPrompt, std::array<int, nChannels>& counterNonPrompt)
+  void runCheckGenParticles(GenColl const& mcCollision, Particles const& mcParticles, RecoColls const& recoCollisions, BCsInfo const&, std::array<int, nChannels>& counterPrompt, std::array<int, nChannels>& counterNonPrompt)
   {
     if (eventGeneratorType >= 0 && mcCollision.getSubGeneratorId() != eventGeneratorType) {
       return;
@@ -262,11 +263,11 @@ struct HfTaskMcValidationGen {
     }
     uint16_t rejectionMask{0};
     if constexpr (centEstimator == CentralityEstimator::FT0C) {
-      rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<aod::BCFullInfos, centEstimator>(mcCollision, recoCollisions, centrality);
+      rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<BCsInfo, centEstimator>(mcCollision, recoCollisions, centrality);
     } else if constexpr (centEstimator == CentralityEstimator::FT0M) {
-      rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<aod::BCFullInfos, centEstimator>(mcCollision, recoCollisions, centrality);
+      rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<BCsInfo, centEstimator>(mcCollision, recoCollisions, centrality);
     } else if constexpr (centEstimator == CentralityEstimator::None) {
-      rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<aod::BCFullInfos, centEstimator>(mcCollision, recoCollisions, centrality);
+      rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<BCsInfo, centEstimator>(mcCollision, recoCollisions, centrality);
     }
     hfEvSelMc.fillHistograms<centEstimator>(mcCollision, rejectionMask);
     if (rejectionMask != 0) {
@@ -516,7 +517,7 @@ struct HfTaskMcValidationGen {
   void processNoCentSel(aod::McCollisions const& mcCollisions,
                         aod::McParticles const& mcParticles,
                         CollisionsNoCents const& recoCollisions,
-                        aod::BCFullInfos const& bcInfo)
+                        BCsInfo const& bcInfo)
   {
     for (const auto& mcCollision : mcCollisions) {
       const auto recoCollsPerMcColl = recoCollisions.sliceBy(colPerMcCollision, mcCollision.globalIndex());
@@ -544,7 +545,7 @@ struct HfTaskMcValidationGen {
   void processCentFT0C(aod::McCollisions const& mcCollisions,
                        aod::McParticles const& mcParticles,
                        CollisionsFT0Cs const& recoCollisions,
-                       aod::BCFullInfos const& bcInfo)
+                       BCsInfo const& bcInfo)
   {
     for (const auto& mcCollision : mcCollisions) {
       const auto recoCollsPerMcColl = recoCollisions.sliceBy(colPerMcCollisionFT0C, mcCollision.globalIndex());
@@ -572,7 +573,7 @@ struct HfTaskMcValidationGen {
   void processCentFT0M(McCollisionsCentFT0Ms const& mcCollisions,
                        aod::McParticles const& mcParticles,
                        CollisionsFT0Ms const& recoCollisions,
-                       aod::BCFullInfos const& bcInfo)
+                       BCsInfo const& bcInfo)
   {
     for (const auto& mcCollision : mcCollisions) {
       const auto recoCollsPerMcColl = recoCollisions.sliceBy(colPerMcCollisionFT0M, mcCollision.globalIndex());
@@ -806,10 +807,10 @@ struct HfTaskMcValidationRec {
     ccdb->setLocalObjectValidityChecking();
   }
 
-  template <o2::hf_centrality::CentralityEstimator centEstimator, typename Coll, typename BCs>
+  template <o2::hf_centrality::CentralityEstimator centEstimator, typename Coll>
   void checkCollisions(Coll const& collision,
                        aod::McCollisions const&,
-                       BCs const& bcs)
+                       aod::BCsWithTimestamps const&)
   {
     // apply event selection
     if (!collision.has_mcCollision()) {
@@ -817,7 +818,7 @@ struct HfTaskMcValidationRec {
     }
 
     float centrality{-1.f};
-    const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, BCs>(collision, centrality, ccdb, registry, bcs);
+    const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, aod::BCsWithTimestamps>(collision, centrality, ccdb, registry);
     if (rejectionMask != 0) {
       /// at least one event selection not satisfied --> reject the candidate
       return;
@@ -835,19 +836,19 @@ struct HfTaskMcValidationRec {
     registry.fill(HIST("histDeltaZvtx"), collision.numContrib(), collision.posZ() - mcCollision.posZ());
   }
 
-  template <o2::hf_centrality::CentralityEstimator centEstimator, typename Colls, typename BCs>
+  template <o2::hf_centrality::CentralityEstimator centEstimator, typename Colls>
   void checkCollisionAssociation(Colls const& collisions,
                                  TracksWithSel const&,
                                  aod::McParticles const& mcParticles,
                                  aod::McCollisions const&,
-                                 BCs const& bcs)
+                                 aod::BCsWithTimestamps const&)
   {
     // loop over collisions
     for (const auto& collision : collisions) {
       // check that collision is selected by hf-track-index-skim-creator-tag-sel-collisions
 
       float centrality{-1.f};
-      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, BCs>(collision, centrality, ccdb, registry, bcs);
+      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, aod::BCsWithTimestamps>(collision, centrality, ccdb, registry);
       if (rejectionMask != 0) {
         /// at least one event selection not satisfied --> reject the candidate
         continue;
@@ -980,7 +981,7 @@ struct HfTaskMcValidationRec {
 
   void processColl(CollisionsWithMCLabels::iterator const& collision,
                    aod::McCollisions const& mcCollisions,
-                   aod::BCFullInfos const& bcs)
+                   aod::BCsWithTimestamps const& bcs)
   {
     checkCollisions<o2::hf_centrality::CentralityEstimator::None>(collision, mcCollisions, bcs);
   } // end process
@@ -988,7 +989,7 @@ struct HfTaskMcValidationRec {
 
   void processCollWithCentFTOC(CollisionsWithMCLabelsAndCentFT0C::iterator const& collision,
                                aod::McCollisions const& mcCollisions,
-                               aod::BCFullInfos const& bcs)
+                               aod::BCsWithTimestamps const& bcs)
   {
     checkCollisions<o2::hf_centrality::CentralityEstimator::FT0C>(collision, mcCollisions, bcs);
   } // end process
@@ -996,7 +997,7 @@ struct HfTaskMcValidationRec {
 
   void processCollWithCentFTOM(CollisionsWithMCLabelsAndCentFT0M::iterator const& collision,
                                aod::McCollisions const& mcCollisions,
-                               aod::BCFullInfos const& bcs)
+                               aod::BCsWithTimestamps const& bcs)
   {
     checkCollisions<o2::hf_centrality::CentralityEstimator::FT0M>(collision, mcCollisions, bcs);
   } // end process
@@ -1006,7 +1007,7 @@ struct HfTaskMcValidationRec {
                         TracksWithSel const& tracks,
                         aod::McParticles const& mcParticles,
                         aod::McCollisions const& mcCollisions,
-                        aod::BCFullInfos const& bcs)
+                        aod::BCsWithTimestamps const& bcs)
   {
     checkCollisionAssociation<o2::hf_centrality::CentralityEstimator::None>(collisions, tracks, mcParticles, mcCollisions, bcs);
   }
@@ -1016,7 +1017,7 @@ struct HfTaskMcValidationRec {
                                     TracksWithSel const& tracks,
                                     aod::McParticles const& mcParticles,
                                     aod::McCollisions const& mcCollisions,
-                                    aod::BCFullInfos const& bcs)
+                                    aod::BCsWithTimestamps const& bcs)
   {
     checkCollisionAssociation<o2::hf_centrality::CentralityEstimator::FT0C>(collisions, tracks, mcParticles, mcCollisions, bcs);
   }
@@ -1026,19 +1027,19 @@ struct HfTaskMcValidationRec {
                                     TracksWithSel const& tracks,
                                     aod::McParticles const& mcParticles,
                                     aod::McCollisions const& mcCollisions,
-                                    aod::BCFullInfos const& bcs)
+                                    aod::BCsWithTimestamps const& bcs)
   {
     checkCollisionAssociation<o2::hf_centrality::CentralityEstimator::FT0M>(collisions, tracks, mcParticles, mcCollisions, bcs);
   }
   PROCESS_SWITCH(HfTaskMcValidationRec, processCollAssocWithCentFTOM, "Process collision-association information with centrality selection with FT0M, requires extra table from TrackToCollisionAssociation task (fillTableOfCollIdsPerTrack=true)", false);
 
-  template <CentralityEstimator centEstimator, typename Coll, typename BCs>
+  template <CentralityEstimator centEstimator, typename Coll>
   void processEff(HfCand2ProngWithMCRec const& cand2Prongs,
                   HfCand3ProngWithMCRec const& cand3Prongs,
                   aod::TracksWMc const&,
                   aod::McParticles const& mcParticles,
                   aod::McCollisions const&,
-                  BCs const& bcs,
+                  aod::BCsWithTimestamps const&,
                   Coll const& collisions,
                   Preslice<HfCand2ProngWithMCRec> cand2ProngsPerCollision,
                   Preslice<HfCand3ProngWithMCRec> cand3ProngsPerCollision)
@@ -1048,7 +1049,7 @@ struct HfTaskMcValidationRec {
       // apply event selection
       float centrality{105.f};
       int occupancy = collision.trackOccupancyInTimeRange();
-      hfEvSel.getHfCollisionRejectionMask<true, centEstimator, BCs>(collision, centrality, ccdb, registry, bcs); // only needed to update centrality, no bitmask selection applied
+      hfEvSel.getHfCollisionRejectionMask<true, centEstimator, aod::BCsWithTimestamps>(collision, centrality, ccdb, registry); // only needed to update centrality, no bitmask selection applied
       if (!collision.has_mcCollision()) {
         return;
       }
@@ -1154,7 +1155,7 @@ struct HfTaskMcValidationRec {
                         aod::TracksWMc const& mcTracks,
                         aod::McParticles const& mcParticles,
                         aod::McCollisions const& mcCollisions,
-                        aod::BCFullInfos const& bcs,
+                        aod::BCsWithTimestamps const& bcs,
                         CollisionsWithMCLabels const& collsWithLabels)
   {
     processEff<CentralityEstimator::None, CollisionsWithMCLabels>(cand2Prongs, cand3Prongs, mcTracks, mcParticles, mcCollisions, bcs, collsWithLabels, cand2ProngPerCollision, cand3ProngPerCollision);
@@ -1166,7 +1167,7 @@ struct HfTaskMcValidationRec {
                           aod::TracksWMc const& mcTracks,
                           aod::McParticles const& mcParticles,
                           aod::McCollisions const& mcCollisions,
-                          aod::BCFullInfos const& bcs,
+                          aod::BCsWithTimestamps const& bcs,
                           CollisionsWithMCLabelsAndCentFT0C const& collsWithLabels)
   {
     processEff<CentralityEstimator::FT0C, CollisionsWithMCLabelsAndCentFT0C>(cand2Prongs, cand3Prongs, mcTracks, mcParticles, mcCollisions, bcs, collsWithLabels, cand2ProngPerCollision, cand3ProngPerCollision);

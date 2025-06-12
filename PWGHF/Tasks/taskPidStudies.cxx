@@ -35,7 +35,6 @@
 #include "Common/DataModel/TrackSelectionTables.h"
 #include "PWGLF/DataModel/LFStrangenessTables.h"
 #include "PWGLF/DataModel/LFStrangenessPIDTables.h"
-#include "PWGHF/DataModel/CandidateReconstructionTables.h"
 #include "PWGHF/Utils/utilsEvSelHf.h"
 #include "PWGHF/Core/CentralityEstimation.h"
 
@@ -198,6 +197,7 @@ struct HfTaskPidStudies {
   using CollisionsMc = soa::Join<aod::Collisions, aod::McCollisionLabels, aod::EvSels, aod::CentFT0Cs, aod::CentFT0Ms>;
   using V0sMcRec = soa::Join<aod::V0Datas, aod::V0CoreMCLabels>;
   using CascsMcRec = soa::Join<aod::CascDatas, aod::CascCoreMCLabels>;
+  using BCs = soa::Join<aod::BCsWithTimestamps, aod::BcSels, aod::Run3MatchedToBCSparse>;
 
   ctpRateFetcher rateFetcher;
   HfEventSelection hfEvSel;
@@ -504,7 +504,7 @@ struct HfTaskPidStudies {
                    aod::V0MCCores const&,
                    aod::McParticles const& /*particlesMc*/,
                    PidTracks const& /*tracks*/,
-                   aod::BCFullInfos const& bcs)
+                   BCs const& bcs)
   {
     for (const auto& v0 : V0s) {
       if (applyEvSels && !isCollSelected(v0.collision_as<CollisionsMc>(), bcs)) {
@@ -525,7 +525,7 @@ struct HfTaskPidStudies {
 
   void processV0Data(aod::V0Datas const& V0s,
                      PidTracks const&,
-                     aod::BCFullInfos const& bcs,
+                     BCs const& bcs,
                      CollSels const&)
   {
     for (const auto& v0 : V0s) {
@@ -547,7 +547,7 @@ struct HfTaskPidStudies {
                      aod::CascMCCores const&,
                      aod::McParticles const& /*particlesMc*/,
                      PidTracks const&,
-                     aod::BCFullInfos const& bcs)
+                     BCs const& bcs)
   {
     for (const auto& casc : cascades) {
       if (applyEvSels && !isCollSelected(casc.collision_as<CollisionsMc>(), bcs)) {
@@ -568,7 +568,7 @@ struct HfTaskPidStudies {
 
   void processCascData(aod::CascDatas const& cascades,
                        PidTracks const&,
-                       aod::BCFullInfos const& bcs,
+                       BCs const& bcs,
                        CollSels const&)
   {
     for (const auto& casc : cascades) {

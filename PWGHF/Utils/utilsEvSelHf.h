@@ -100,16 +100,16 @@ enum EventRejection {
   TvxTrigger,
   TimeFrameBorderCut,
   ItsRofBorderCut,
-  UpcEventCut,
   IsGoodZvtxFT0vsPV,
   NoSameBunchPileup,
   Occupancy,
   NContrib,
-  Chi2,
-  PositionZ,
   NoCollInTimeRangeNarrow,
   NoCollInTimeRangeStandard,
   NoCollInRofStandard,
+  UpcEventCut,
+  Chi2,
+  PositionZ,
   NEventRejection
 };
 
@@ -274,7 +274,119 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
     addHistograms(registry);
   }
 
-  /// \brief Applies event selection.
+  /// \brief Applies event selection without upc flag and bc para
+  /// \tparam useEvSel use information from the EvSel table
+  /// \tparam centEstimator centrality estimator
+  /// \param collision collision to test against the selection criteria
+  /// \param centrality collision centrality variable to be set in this function
+  /// \param ccdb ccdb service needed to retrieve the needed info for zorro
+  /// \param registry reference to the histogram registry needed for zorro
+  /// \return bitmask with the event selection criteria not satisfied by the collision
+  template <bool useEvSel, o2::hf_centrality::CentralityEstimator centEstimator, typename BCs, typename Coll>
+  uint16_t getHfCollisionRejectionMask(const Coll& collision, float& centrality, o2::framework::Service<o2::ccdb::BasicCCDBManager> const& ccdb, o2::framework::HistogramRegistry& registry)
+  {
+    uint16_t rejectionMask{0}; // 16 bits, in case new ev. selections will be added
+
+    if constexpr (centEstimator != o2::hf_centrality::CentralityEstimator::None) {
+      centrality = o2::hf_centrality::getCentralityColl(collision, centEstimator);
+      if (centrality < centralityMin || centrality > centralityMax) {
+        SETBIT(rejectionMask, EventRejection::Centrality);
+      }
+    }
+
+    if constexpr (useEvSel) {
+      /// RCT condition
+      if (requireGoodRct && !rctChecker.checkTable(collision)) {
+        SETBIT(rejectionMask, EventRejection::Rct);
+      }
+      /// trigger condition
+      if ((useSel8Trigger && !collision.sel8()) || (!useSel8Trigger && triggerClass > -1 && !collision.alias_bit(triggerClass))) {
+        SETBIT(rejectionMask, EventRejection::Trigger);
+      }
+      /// TVX trigger selection
+      if (useTvxTrigger && !collision.selection_bit(o2::aod::evsel::kIsTriggerTVX)) {
+        SETBIT(rejectionMask, EventRejection::TvxTrigger);
+      }
+      /// time frame border cut
+      if (useTimeFrameBorderCut && !collision.selection_bit(o2::aod::evsel::kNoTimeFrameBorder)) {
+        SETBIT(rejectionMask, EventRejection::TimeFrameBorderCut);
+      }
+      /// ITS rof border cut
+      if (useItsRofBorderCut && !collision.selection_bit(o2::aod::evsel::kNoITSROFrameBorder)) {
+        SETBIT(rejectionMask, EventRejection::ItsRofBorderCut);
+      }
+      /// PVz consistency tracking - FT0 timing
+      if (useIsGoodZvtxFT0vsPV && !collision.selection_bit(o2::aod::evsel::kIsGoodZvtxFT0vsPV)) {
+        SETBIT(rejectionMask, EventRejection::IsGoodZvtxFT0vsPV);
+      }
+      /// remove collisions in bunches with more than 1 reco collision
+      /// POTENTIALLY BAD FOR BEAUTY ANALYSES
+      if (useNoSameBunchPileup && !collision.selection_bit(o2::aod::evsel::kNoSameBunchPileup)) {
+        SETBIT(rejectionMask, EventRejection::NoSameBunchPileup);
+      }
+      /// No collisions in time range narrow
+      if (useNoCollInTimeRangeNarrow && !collision.selection_bit(o2::aod::evsel::kNoCollInTimeRangeNarrow)) {
+        SETBIT(rejectionMask, EventRejection::NoCollInTimeRangeNarrow);
+      }
+      /// No collisions in time range strict
+      if (useNoCollInTimeRangeStandard && !collision.selection_bit(o2::aod::evsel::kNoCollInTimeRangeStandard)) {
+        SETBIT(rejectionMask, EventRejection::NoCollInTimeRangeStandard);
+      }
+      /// No collisions in ROF standard
+      if (useNoCollInRofStandard && !collision.selection_bit(o2::aod::evsel::kNoCollInRofStandard)) {
+        SETBIT(rejectionMask, EventRejection::NoCollInRofStandard);
+      }
+      if (useOccupancyCut) {
+        float occupancy = o2::hf_occupancy::getOccupancyColl(collision, occEstimator);
+        if (occupancy < occupancyMin || occupancy > occupancyMax) {
+          SETBIT(rejectionMask, EventRejection::Occupancy);
+        }
+      }
+    }
+
+    /// number of PV contributors
+    if (collision.numContrib() < nPvContributorsMin) {
+      SETBIT(rejectionMask, EventRejection::NContrib);
+    }
+
+    /// max PV chi2
+    if (chi2PvMax > 0. && collision.chi2() > chi2PvMax) {
+      SETBIT(rejectionMask, EventRejection::Chi2);
+    }
+
+    /// primary vertex z
+    if (collision.posZ() < zPvPosMin || collision.posZ() > zPvPosMax) {
+      SETBIT(rejectionMask, EventRejection::PositionZ);
+    }
+
+    if (softwareTrigger.value != "") {
+      // we might have to update it from CCDB
+      auto bc = collision.template bc_as<BCs>();
+
+      int runNumber = bc.runNumber();
+      if (runNumber != currentRun) { // We might need to update Zorro from CCDB if the run number changes
+        zorro.setCCDBpath(ccdbPathSoftwareTrigger);
+        zorro.setBCtolerance(bcMarginForSoftwareTrigger);
+        zorro.initCCDB(ccdb.service, runNumber, bc.timestamp(), softwareTrigger.value);
+        currentRun = runNumber;
+      }
+      zorro.populateHistRegistry(registry, runNumber);
+
+      if (softwareTrigger.value != "None") {
+        if (!zorro.isSelected(bc.globalBC(), bcMarginForSoftwareTrigger)) { /// Just let Zorro do the accounting
+          SETBIT(rejectionMask, EventRejection::SoftwareTrigger);
+        }
+      } else {
+        if (!zorro.isNotSelectedByAny(bc.globalBC(), bcMarginForSoftwareTrigger)) { /// Just let Zorro do the accounting of not selected BCs
+          SETBIT(rejectionMask, EventRejection::SoftwareTrigger);
+        }
+      }
+    }
+
+    return rejectionMask;
+  }
+
+  /// \brief Applies event selection with upc flag and bc para
   /// \tparam useEvSel use information from the EvSel table
   /// \tparam centEstimator centrality estimator
   /// \param collision collision to test against the selection criteria

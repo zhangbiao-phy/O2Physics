@@ -418,11 +418,11 @@ struct HfTaskFlowCharmHadrons {
   /// \return true if the collision is selected, false otherwise
   template <o2::hf_centrality::CentralityEstimator centEstimator>
   bool isCollSelected(CollsWithQvecs::iterator const& collision,
-                      aod::BCFullInfos const& bcs,
+                      aod::BCsWithTimestamps const&,
                       float& centrality)
   {
     float occupancy = getOccupancyColl(collision, occEstimator);
-    const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, aod::BCFullInfos>(collision, centrality, ccdb, registry, bcs);
+    const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, aod::BCsWithTimestamps>(collision, centrality, ccdb, registry);
     centrality = o2::hf_centrality::getCentralityColl(collision, centEstimator);
 
     /// monitor the satisfied event selections
@@ -482,10 +482,9 @@ struct HfTaskFlowCharmHadrons {
   /// Compute the scalar product
   /// \param collision is the collision with the Q vector information and event plane
   /// \param candidates are the selected candidates
-  template <DecayChannel channel, typename T1, typename BCs>
+  template <DecayChannel channel, typename T1>
   void runFlowAnalysis(CollsWithQvecs::iterator const& collision,
-                       T1 const& candidates,
-                       BCs const& bcs)
+                       T1 const& candidates)
   {
     float cent = o2::hf_centrality::getCentralityColl(collision, centEstimator);
     if (cent < centralityMin || cent > centralityMax) {
@@ -496,7 +495,7 @@ struct HfTaskFlowCharmHadrons {
     if (occEstimator != 0) {
       occupancy = getOccupancyColl(collision, occEstimator);
       registry.fill(HIST("trackOccVsFT0COcc"), collision.trackOccupancyInTimeRange(), collision.ft0cOccupancyInTimeRange());
-      hfevflag = hfEvSel.getHfCollisionRejectionMask<true, o2::hf_centrality::CentralityEstimator::None, BCs>(collision, cent, ccdb, registry, bcs);
+      hfevflag = hfEvSel.getHfCollisionRejectionMask<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, cent, ccdb, registry);
     }
 
     std::vector<float> qVecs = getQvec(collision);
@@ -640,115 +639,105 @@ struct HfTaskFlowCharmHadrons {
 
   // Ds with ML
   void processDsMl(CollsWithQvecs::iterator const& collision,
-                   CandDsDataWMl const&,
-                   aod::BCFullInfos const& bcs)
+                   CandDsDataWMl const&)
   {
     auto candsDsToKKPiWMl = selectedDsToKKPiWMl->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
     auto candsDsToPiKKWMl = selectedDsToPiKKWMl->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
-    runFlowAnalysis<DecayChannel::DsToKKPi>(collision, candsDsToKKPiWMl, bcs);
-    runFlowAnalysis<DecayChannel::DsToPiKK>(collision, candsDsToPiKKWMl, bcs);
+    runFlowAnalysis<DecayChannel::DsToKKPi>(collision, candsDsToKKPiWMl);
+    runFlowAnalysis<DecayChannel::DsToPiKK>(collision, candsDsToPiKKWMl);
   }
   PROCESS_SWITCH(HfTaskFlowCharmHadrons, processDsMl, "Process Ds candidates with ML", false);
 
   // Ds with rectangular cuts
   void processDs(CollsWithQvecs::iterator const& collision,
-                 CandDsData const&,
-                 aod::BCFullInfos const& bcs)
+                 CandDsData const&)
   {
     auto candsDsToKKPi = selectedDsToKKPi->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
     auto candsDsToPiKK = selectedDsToPiKK->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
-    runFlowAnalysis<DecayChannel::DsToKKPi>(collision, candsDsToKKPi, bcs);
-    runFlowAnalysis<DecayChannel::DsToPiKK>(collision, candsDsToPiKK, bcs);
+    runFlowAnalysis<DecayChannel::DsToKKPi>(collision, candsDsToKKPi);
+    runFlowAnalysis<DecayChannel::DsToPiKK>(collision, candsDsToPiKK);
   }
   PROCESS_SWITCH(HfTaskFlowCharmHadrons, processDs, "Process Ds candidates", false);
 
   // Dplus with ML
   void processDplusMl(CollsWithQvecs::iterator const& collision,
-                      CandDplusDataWMl const& candidatesDplus,
-                      aod::BCFullInfos const& bcs)
+                      CandDplusDataWMl const& candidatesDplus)
   {
-    runFlowAnalysis<DecayChannel::DplusToPiKPi>(collision, candidatesDplus, bcs);
+    runFlowAnalysis<DecayChannel::DplusToPiKPi>(collision, candidatesDplus);
   }
   PROCESS_SWITCH(HfTaskFlowCharmHadrons, processDplusMl, "Process Dplus candidates with ML", false);
 
   // Dplus with rectangular cuts
   void processDplus(CollsWithQvecs::iterator const& collision,
-                    CandDplusData const& candidatesDplus,
-                    aod::BCFullInfos const& bcs)
+                    CandDplusData const& candidatesDplus)
   {
-    runFlowAnalysis<DecayChannel::DplusToPiKPi>(collision, candidatesDplus, bcs);
+    runFlowAnalysis<DecayChannel::DplusToPiKPi>(collision, candidatesDplus);
   }
   PROCESS_SWITCH(HfTaskFlowCharmHadrons, processDplus, "Process Dplus candidates", true);
 
   // D0 with ML
   void processD0Ml(CollsWithQvecs::iterator const& collision,
-                   CandD0DataWMl const&,
-                   aod::BCFullInfos const& bcs)
+                   CandD0DataWMl const&)
   {
     auto candsD0ToPiKWMl = selectedD0ToPiKWMl->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
     auto candsD0ToKPiWMl = selectedD0ToKPiWMl->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
-    runFlowAnalysis<DecayChannel::D0ToPiK>(collision, candsD0ToPiKWMl, bcs);
-    runFlowAnalysis<DecayChannel::D0ToKPi>(collision, candsD0ToKPiWMl, bcs);
+    runFlowAnalysis<DecayChannel::D0ToPiK>(collision, candsD0ToPiKWMl);
+    runFlowAnalysis<DecayChannel::D0ToKPi>(collision, candsD0ToKPiWMl);
   }
   PROCESS_SWITCH(HfTaskFlowCharmHadrons, processD0Ml, "Process D0 candidates with ML", false);
 
   // D0 with rectangular cuts
   void processD0(CollsWithQvecs::iterator const& collision,
-                 CandD0Data const&,
-                 aod::BCFullInfos const& bcs)
+                 CandD0Data const&)
   {
     auto candsD0ToPiK = selectedD0ToPiK->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
     auto candsD0ToKPi = selectedD0ToKPi->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
-    runFlowAnalysis<DecayChannel::D0ToPiK>(collision, candsD0ToPiK, bcs);
-    runFlowAnalysis<DecayChannel::D0ToKPi>(collision, candsD0ToKPi, bcs);
+    runFlowAnalysis<DecayChannel::D0ToPiK>(collision, candsD0ToPiK);
+    runFlowAnalysis<DecayChannel::D0ToKPi>(collision, candsD0ToKPi);
   }
   PROCESS_SWITCH(HfTaskFlowCharmHadrons, processD0, "Process D0 candidates", false);
 
   // Lc with ML
   void processLcMl(CollsWithQvecs::iterator const& collision,
-                   CandLcDataWMl const&,
-                   aod::BCFullInfos const& bcs)
+                   CandLcDataWMl const&)
   {
     auto candsLcToPKPiWMl = selectedLcToPKPiWMl->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
     auto candsLcToPiKPWMl = selectedLcToPiKPWMl->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
-    runFlowAnalysis<DecayChannel::LcToPKPi>(collision, candsLcToPKPiWMl, bcs);
-    runFlowAnalysis<DecayChannel::LcToPiKP>(collision, candsLcToPiKPWMl, bcs);
+    runFlowAnalysis<DecayChannel::LcToPKPi>(collision, candsLcToPKPiWMl);
+    runFlowAnalysis<DecayChannel::LcToPiKP>(collision, candsLcToPiKPWMl);
   }
   PROCESS_SWITCH(HfTaskFlowCharmHadrons, processLcMl, "Process Lc candidates with ML", false);
 
   // Lc with rectangular cuts
   void processLc(CollsWithQvecs::iterator const& collision,
-                 CandLcData const&,
-                 aod::BCFullInfos const& bcs)
+                 CandLcData const&)
   {
     auto candsLcToPKPi = selectedLcToPKPi->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
     auto candsLcToPiKP = selectedLcToPiKP->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
-    runFlowAnalysis<DecayChannel::LcToPKPi>(collision, candsLcToPKPi, bcs);
-    runFlowAnalysis<DecayChannel::LcToPiKP>(collision, candsLcToPiKP, bcs);
+    runFlowAnalysis<DecayChannel::LcToPKPi>(collision, candsLcToPKPi);
+    runFlowAnalysis<DecayChannel::LcToPiKP>(collision, candsLcToPiKP);
   }
   PROCESS_SWITCH(HfTaskFlowCharmHadrons, processLc, "Process Lc candidates", false);
 
   // Xic with ML
   void processXicMl(CollsWithQvecs::iterator const& collision,
-                    CandXicDataWMl const&,
-                    aod::BCFullInfos const& bcs)
+                    CandXicDataWMl const&)
   {
     auto candsXicToPKPiWMl = selectedXicToPKPiWMl->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
     auto candsXicToPiKPWMl = selectedXicToPiKPWMl->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
-    runFlowAnalysis<DecayChannel::XicToPKPi>(collision, candsXicToPKPiWMl, bcs);
-    runFlowAnalysis<DecayChannel::XicToPiKP>(collision, candsXicToPiKPWMl, bcs);
+    runFlowAnalysis<DecayChannel::XicToPKPi>(collision, candsXicToPKPiWMl);
+    runFlowAnalysis<DecayChannel::XicToPiKP>(collision, candsXicToPiKPWMl);
   }
   PROCESS_SWITCH(HfTaskFlowCharmHadrons, processXicMl, "Process Xic candidates with ML", false);
 
   // Xic with rectangular cuts
   void processXic(CollsWithQvecs::iterator const& collision,
-                  CandXicData const&,
-                  aod::BCFullInfos const& bcs)
+                  CandXicData const&)
   {
     auto candsXicToPKPi = selectedXicToPKPi->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
     auto candsXicToPiKP = selectedXicToPiKP->sliceByCached(aod::hf_cand::collisionId, collision.globalIndex(), cache);
-    runFlowAnalysis<DecayChannel::XicToPKPi>(collision, candsXicToPKPi, bcs);
-    runFlowAnalysis<DecayChannel::XicToPiKP>(collision, candsXicToPiKP, bcs);
+    runFlowAnalysis<DecayChannel::XicToPKPi>(collision, candsXicToPKPi);
+    runFlowAnalysis<DecayChannel::XicToPiKP>(collision, candsXicToPiKP);
   }
   PROCESS_SWITCH(HfTaskFlowCharmHadrons, processXic, "Process Xic candidates", false);
 
@@ -772,7 +761,7 @@ struct HfTaskFlowCharmHadrons {
 
   // Resolution
   void processResolution(CollsWithQvecs::iterator const& collision,
-                         aod::BCFullInfos const& bcs)
+                         aod::BCsWithTimestamps const& bcs)
   {
     float centrality{-1.f};
     float xQVecFT0a = collision.qvecFT0ARe();
@@ -795,7 +784,7 @@ struct HfTaskFlowCharmHadrons {
       float occupancy{-1.f};
       occupancy = getOccupancyColl(collision, occEstimator);
       registry.fill(HIST("trackOccVsFT0COcc"), collision.trackOccupancyInTimeRange(), collision.ft0cOccupancyInTimeRange());
-      uint16_t hfevflag = hfEvSel.getHfCollisionRejectionMask<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, centrality, ccdb, registry, bcs);
+      uint16_t hfevflag = hfEvSel.getHfCollisionRejectionMask<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(collision, centrality, ccdb, registry);
       std::vector<int> evtSelFlags = getEventSelectionFlags(hfevflag);
       registry.fill(HIST("spReso/hSparseReso"), centrality, xQVecFT0c * xQVecFV0a + yQVecFT0c * yQVecFV0a,
                     xQVecFT0c * xQVecBTot + yQVecFT0c * yQVecBTot,
