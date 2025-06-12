@@ -34,10 +34,10 @@ namespace o2::hf_evsel
 /// \tparam centEstimator centrality estimator
 /// \param collision collision to test against the selection criteria
 template <bool useEvSel, o2::hf_centrality::CentralityEstimator centEstimator, typename BCs, typename Coll>
-void checkEvSel(Coll const& collision, o2::hf_evsel::HfEventSelection& hfEvSel, int& zvtxColl, int& sel8Coll, int& zvtxAndSel8Coll, int& zvtxAndSel8CollAndSoftTrig, int& allSelColl, o2::framework::Service<o2::ccdb::BasicCCDBManager> const& ccdb, o2::framework::HistogramRegistry& registry, BCs const& bcs)
+void checkEvSel(Coll const& collision, o2::hf_evsel::HfEventSelection& hfEvSel, int& zvtxColl, int& sel8Coll, int& zvtxAndSel8Coll, int& zvtxAndSel8CollAndSoftTrig, int& allSelColl, o2::framework::Service<o2::ccdb::BasicCCDBManager> const& ccdb, o2::framework::HistogramRegistry& registry)
 {
   float centrality{-1.f};
-  const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<useEvSel, o2::hf_centrality::CentralityEstimator::None, BCs>(collision, centrality, ccdb, registry, bcs);
+  const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<useEvSel, o2::hf_centrality::CentralityEstimator::None, BCs>(collision, centrality, ccdb, registry);
   if (!TESTBIT(rejectionMask, o2::hf_evsel::EventRejection::Trigger)) {
     sel8Coll++;
   }
@@ -84,3 +84,4 @@ float getTpcTofNSigmaPi1(const T1& prong1)
 } // namespace o2::pid_tpc_tof_utils
 
 #endif // PWGHF_D2H_UTILS_UTILSREDDATAFORMAT_H_
+
