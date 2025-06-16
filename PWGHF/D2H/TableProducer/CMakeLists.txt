@@ -77,7 +77,7 @@ o2physics_add_dpl_workflow(data-creator-charm-reso-reduced
 
 o2physics_add_dpl_workflow(data-creator-jpsi-had-reduced
                     SOURCES dataCreatorJpsiHadReduced.cxx
-                    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore O2Physics::EventFilteringUtils
+                    PUBLIC_LINK_LIBRARIES O2Physics::AnalysisCore O2Physics::EventFilteringUtils O2Physics::SGCutParHolder
                     COMPONENT_NAME Analysis)
 
 # Converters
