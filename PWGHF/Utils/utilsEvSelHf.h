@@ -114,12 +114,12 @@ enum EventRejection {
   NEventRejection
 };
 
-// upc event type, refer from https://github.com/AliceO2Group/O2Physics/blob/master/PWGUD/Core/SGSelector.h
+// upc event type, refer from PWGUD/Core/SGSelector.h
 enum EventTypeUpc {
   SingleGapA = 0,
   SingleGapC = 1,
   DoubleGap = 2,
-  NEventTypes
+  NEventTypes = 3
 };
 
 o2::framework::AxisSpec axisEvents = {EventRejection::NEventRejection, -0.5f, +EventRejection::NEventRejection - 0.5f, ""};
