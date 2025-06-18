@@ -17,26 +17,27 @@
 /// \author Marcello Di Costanzo <marcello.di.costanzo@cern.ch>, Politecnico and INFN Torino
 /// \author Luca Aglietta <luca.aglietta@unito.it>, Università and INFN Torino
 
-#include <string>
-#include <memory>
+#include "PWGHF/Core/CentralityEstimation.h"
+#include "PWGHF/Utils/utilsEvSelHf.h"
+#include "PWGLF/DataModel/LFStrangenessPIDTables.h"
+#include "PWGLF/DataModel/LFStrangenessTables.h"
 
-#include "TPDGCode.h"
+#include "Common/CCDB/ctpRateFetcher.h"
+#include "Common/DataModel/Centrality.h"
+#include "Common/DataModel/EventSelection.h"
+#include "Common/DataModel/Multiplicity.h"
+#include "Common/DataModel/PIDResponse.h"
+#include "Common/DataModel/TrackSelectionTables.h"
 
 #include "CCDB/BasicCCDBManager.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/runDataProcessing.h"
 #include "Framework/HistogramRegistry.h"
+#include "Framework/runDataProcessing.h"
 
-#include "Common/CCDB/ctpRateFetcher.h"
-#include "Common/DataModel/PIDResponse.h"
-#include "Common/DataModel/Centrality.h"
-#include "Common/DataModel/Multiplicity.h"
-#include "Common/DataModel/EventSelection.h"
-#include "Common/DataModel/TrackSelectionTables.h"
-#include "PWGLF/DataModel/LFStrangenessTables.h"
-#include "PWGLF/DataModel/LFStrangenessPIDTables.h"
-#include "PWGHF/Utils/utilsEvSelHf.h"
-#include "PWGHF/Core/CentralityEstimation.h"
+#include "TPDGCode.h"
+
+#include <memory>
+#include <string>
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
