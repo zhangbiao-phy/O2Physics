@@ -114,11 +114,11 @@ enum EventRejection {
   NEventRejection
 };
 
-// upc event type
+// upc event type, refer from https://github.com/AliceO2Group/O2Physics/blob/master/PWGUD/Core/SGSelector.h
 enum EventTypeUpc {
   SingleGapA = 0,
-  SingleGapC,
-  DoubleGap,
+  SingleGapC = 1,
+  DoubleGap = 2,
   NEventTypes
 };
 
@@ -353,11 +353,11 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
         auto bc = collision.template foundBC_as<BCs>();
         auto bcRange = udhelpers::compatibleBCs(collision, sgCuts.NDtcoll(), *bcs, sgCuts.minNBCs());
         auto sgSelectionResult = sgSelector.IsSelected(sgCuts, collision, bcRange, bc);
-        int issgevent = sgSelectionResult.value;
-        if (issgevent > EventTypeUpc::DoubleGap) {
+        int upcEventType = sgSelectionResult.value;
+        if (upcEventType > EventTypeUpc::DoubleGap) {
           SETBIT(rejectionMask, EventRejection::UpcEventCut);
         } else {
-          hUPCollisions->Fill(issgevent);
+          hUPCollisions->Fill(upcEventType);
         }
       }
     }
