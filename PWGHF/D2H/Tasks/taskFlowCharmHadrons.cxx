@@ -16,22 +16,22 @@
 /// \author Wu Chuntai, CUG, China
 /// \author Ran Tu, Fudan University, China
 
-#include <string>
-#include <vector>
+#include "PWGHF/Core/CentralityEstimation.h"
+#include "PWGHF/Core/HfHelper.h"
+#include "PWGHF/DataModel/CandidateReconstructionTables.h"
+#include "PWGHF/DataModel/CandidateSelectionTables.h"
+#include "PWGHF/Utils/utilsEvSelHf.h"
+
+#include "Common/Core/EventPlaneHelper.h"
+#include "Common/DataModel/Qvectors.h"
 
 #include "CCDB/BasicCCDBManager.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
 #include "Framework/runDataProcessing.h"
 
-#include "Common/Core/EventPlaneHelper.h"
-#include "Common/DataModel/Qvectors.h"
-
-#include "PWGHF/Core/HfHelper.h"
-#include "PWGHF/Core/CentralityEstimation.h"
-#include "PWGHF/DataModel/CandidateSelectionTables.h"
-#include "PWGHF/DataModel/CandidateReconstructionTables.h"
-#include "PWGHF/Utils/utilsEvSelHf.h"
+#include <string>
+#include <vector>
 
 using namespace o2;
 using namespace o2::aod;
@@ -422,7 +422,7 @@ struct HfTaskFlowCharmHadrons {
                       float& centrality)
   {
     float occupancy = getOccupancyColl(collision, occEstimator);
-    const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, o2::hf_centrality::CentralityEstimator::None, aod::BCFullInfos>(collision, centrality, ccdb, registry, nullptr);
+    const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, aod::BCFullInfos>(collision, centrality, ccdb, registry, nullptr);
     centrality = o2::hf_centrality::getCentralityColl(collision, centEstimator);
 
     /// monitor the satisfied event selections
