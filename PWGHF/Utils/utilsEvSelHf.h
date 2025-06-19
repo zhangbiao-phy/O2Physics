@@ -200,18 +200,6 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   static constexpr char NameHistCollisionsCentOcc[] = "hCollisionsCentOcc";
   static constexpr char NameHistUPC[] = "hUPCollisions";
 
-  // UPC preselection
-  static constexpr int dtCollNMin{1};             // Minimum number of sigma around the collision
-  static constexpr int bcsNMin{2};                // Minimum number of bunch crossings (BCs)
-  static constexpr int trackNMin{2};              // Minimum number of PV contributors
-  static constexpr int trackNMax{1000};           // Maximum number of PV contributors
-  static constexpr float fitTimeNsMax{34.f};      // Maximum FIT time in ns
-  static constexpr float ampFV0Threshold{-1.f};   // FV0 amplitude threshold (-1 = no requirement)
-  static constexpr float ampFT0AThreshold{150.f}; // FT0A amplitude threshold
-  static constexpr float ampFT0CThreshold{50.f};  // FT0C amplitude threshold
-  static constexpr float ampFDDAThreshold{-1.f};  // FDDA amplitude threshold
-  static constexpr float ampFDDCThreshold{-1.f};  // FDDC amplitude threshold
-
   std::shared_ptr<TH1> hCollisions, hSelCollisionsCent, hPosZBeforeEvSel, hPosZAfterEvSel, hPosXAfterEvSel, hPosYAfterEvSel, hNumPvContributorsAfterSel, hUPCollisions;
   std::shared_ptr<TH2> hCollisionsCentOcc;
 
@@ -227,15 +215,14 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   SGCutParHolder setSGPreselection()
   {
     SGCutParHolder sgCuts;
-    sgCuts.SetNDtcoll(dtCollNMin);
-    sgCuts.SetMinNBCs(bcsNMin);
-    sgCuts.SetNTracks(trackNMin, trackNMax);
-    sgCuts.SetMaxFITtime(fitTimeNsMax);
-    sgCuts.SetFITAmpLimits({ampFV0Threshold,
-                            ampFT0AThreshold,
-                            ampFT0CThreshold,
-                            ampFDDAThreshold,
-                            ampFDDCThreshold});
+    sgCuts.SetNDtColl(1);       // Minimum number of sigma around the collision
+    sgCuts.SetMinNBCs(2);       // Minimum number of bunch crossings
+    sgCuts.SetNTracks(2, 1000); // Minimum and maximum number of PV contributors
+    sgCuts.SetMaxFitTime(34.f); // Maximum FIT time in ns
+
+    // Set FIT amplitudes: FV0, FT0A, FT0C, FDDA, FDDC
+    sgCuts.SetFitAmpLimits({-1.f, 150.f, 50.f, -1.f, -1.f});
+
     return sgCuts;
   }
 
