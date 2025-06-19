@@ -27,8 +27,8 @@
 #include "DCAFitter/DCAFitterN.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/runDataProcessing.h"
 #include "Framework/RunningWorkflowInfo.h"
+#include "Framework/runDataProcessing.h"
 // O2Physics
 #include "Common/Core/trackUtilities.h"
 // PWGLF
@@ -186,12 +186,12 @@ struct HfCandidateCreatorDstar {
   /// @param rowsTrackIndexD0 D0 table object from trackIndexSkimCreator.cxx
   /// @param tracks track table with Cov object
   /// @param bcWithTimeStamps Bunch Crossing with timestamps
-  template <bool doPvRefit, o2::hf_centrality::CentralityEstimator centEstimator, typename Coll, typename CandsDstar, typename BCs>
+  template <bool doPvRefit, o2::hf_centrality::CentralityEstimator centEstimator, typename Coll, typename CandsDstar, typename BCsType>
   void runCreatorDstar(Coll const&,
                        CandsDstar const& rowsTrackIndexDstar,
                        aod::Hf2Prongs const&,
                        TracksWCovExtraPidPiKa const&,
-                       BCs const& bcs)
+                       BCsType const& bcs)
   {
     // LOG(info) << "runCreatorDstar function called";
     // LOG(info) << "candidate loop starts";
@@ -201,7 +201,7 @@ struct HfCandidateCreatorDstar {
       /// reject candidates in collisions not satisfying the event selections
       auto collision = rowTrackIndexDstar.template collision_as<Coll>();
       float centrality{-1.f};
-      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, BCs>(collision, centrality, ccdb, registry, &bcs);
+      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, BCsType>(collision, centrality, ccdb, registry, &bcs);
       if (rejectionMask != 0) {
         /// at least one event selection not satisfied --> reject the candidate
         continue;
@@ -228,7 +228,7 @@ struct HfCandidateCreatorDstar {
       //..................................................Doubt: Should I apply a condition of (collisionPiId == collisionD0Id)
 
       /// Set the magnetic field from ccdb.
-      auto bc = collision.template bc_as<aod::BCsWithTimestamps>();
+      auto bc = collision.template bc_as<BCsType>();
       if (runNumber != bc.runNumber()) {
         // LOG(info) << ">>>>>>>>>>>> Current run number: " << runNumber;
         o2::parameters::GRPMagField* grpo = ccdb->getForTimeStamp<o2::parameters::GRPMagField>(ccdbPathGrpMag, bc.timestamp());
