@@ -201,16 +201,16 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   static constexpr char NameHistUPC[] = "hUPCollisions";
 
   // UPC preselection
-  static constexpr int MinNDtColl{1};        // Miminimum number of bunch crossings around the collision of interest
-  static constexpr int MinNBCs{2};           // Minimum number of bunch crossings
-  static constexpr int MinNTracks{2};        // Minimum number of PV contributors
-  static constexpr int MaxNTracks{1000};     // Maximum number of PV contributors
-  static constexpr float MaxFITTimeNs{34.f}; // Maximum FIT time in ns
-  static constexpr float FITAmpFV0{-1.f};    // FV0 amplitude threshold
-  static constexpr float FITAmpFT0A{150.f};  // Maximum FT0A amplitude
-  static constexpr float FITAmpFT0C{50.f};   // Maximum FT0C amplitude
-  static constexpr float FITAmpFDDA{-1.f};   // FDDA amplitude threshold
-  static constexpr float FITAmpFDDC{-1.f};   // FDDC amplitude threshold
+  static constexpr int dtCollNMin{1};             // Minimum number of sigma around the collision
+  static constexpr int bcsNMin{2};                // Minimum number of bunch crossings (BCs)
+  static constexpr int trackNMin{2};              // Minimum number of PV contributors
+  static constexpr int trackNMax{1000};           // Maximum number of PV contributors
+  static constexpr float fitTimeNsMax{34.f};      // Maximum FIT time in ns
+  static constexpr float ampFV0Threshold{-1.f};   // FV0 amplitude threshold (-1 = no requirement)
+  static constexpr float ampFT0AThreshold{150.f}; // FT0A amplitude threshold
+  static constexpr float ampFT0CThreshold{50.f};  // FT0C amplitude threshold
+  static constexpr float ampFDDAThreshold{-1.f};  // FDDA amplitude threshold
+  static constexpr float ampFDDCThreshold{-1.f};  // FDDC amplitude threshold
 
   std::shared_ptr<TH1> hCollisions, hSelCollisionsCent, hPosZBeforeEvSel, hPosZAfterEvSel, hPosXAfterEvSel, hPosYAfterEvSel, hNumPvContributorsAfterSel, hUPCollisions;
   std::shared_ptr<TH2> hCollisionsCentOcc;
@@ -227,15 +227,15 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   SGCutParHolder setSGPreselection()
   {
     SGCutParHolder sgCuts;
-    sgCuts.SetNDtcoll(MinNDtColl);
-    sgCuts.SetMinNBCs(MinNBCs);
-    sgCuts.SetNTracks(MinNTracks, MaxNTracks);
-    sgCuts.SetMaxFITtime(MaxFITTimeNs);
-    sgCuts.SetFITAmpLimits({FITAmpFV0,
-                            FITAmpFT0A,
-                            FITAmpFT0C,
-                            FITAmpFDDA,
-                            FITAmpFDDC});
+    sgCuts.SetNDtcoll(dtCollNMin);
+    sgCuts.SetMinNBCs(bcsNMin);
+    sgCuts.SetNTracks(trackNMin, trackNMax);
+    sgCuts.SetMaxFITtime(fitTimeNsMax);
+    sgCuts.SetFITAmpLimits({ampFV0Threshold,
+                            ampFT0AThreshold,
+                            ampFT0CThreshold,
+                            ampFDDAThreshold,
+                            ampFDDCThreshold});
     return sgCuts;
   }
 
