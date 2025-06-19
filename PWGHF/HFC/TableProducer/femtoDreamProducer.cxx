@@ -14,36 +14,39 @@
 /// \author Ravindra Singh, GSI, ravindra.singh@cern.ch
 /// \author Biao Zhang, Heidelberg University, biao.zhang@cern.ch
 
-#include "PWGCF/FemtoDream/Core/femtoDreamCollisionSelection.h"
-#include "PWGCF/FemtoDream/Core/femtoDreamTrackSelection.h"
-#include "PWGCF/FemtoDream/Core/femtoDreamUtils.h"
-#include "PWGHF/Core/CentralityEstimation.h"
-#include "PWGHF/Core/HfHelper.h"
-#include "PWGHF/Core/HfMlResponseLcToPKPi.h"
-#include "PWGHF/Core/SelectorCuts.h"
-#include "PWGHF/DataModel/CandidateReconstructionTables.h"
-#include "PWGHF/DataModel/CandidateSelectionTables.h"
-#include "PWGHF/Utils/utilsBfieldCCDB.h"
-#include "PWGHF/Utils/utilsEvSelHf.h"
+#include <string>
+#include <vector>
 
-#include "Common/Core/trackUtilities.h"
-#include "Common/DataModel/Centrality.h"
-#include "Common/DataModel/EventSelection.h"
-#include "Common/DataModel/Multiplicity.h"
+#include "TMCProcess.h"
 
 #include "CCDB/BasicCCDBManager.h"
+
+#include "Common/Core/trackUtilities.h"
+#include "Common/DataModel/EventSelection.h"
+#include "Common/DataModel/Multiplicity.h"
+#include "Common/DataModel/Centrality.h"
+
 #include "DataFormatsParameters/GRPMagField.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/Propagator.h"
+
 #include "Framework/ASoAHelpers.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
 #include "Framework/runDataProcessing.h"
 
-#include "TMCProcess.h"
+#include "PWGCF/FemtoDream/Core/femtoDreamCollisionSelection.h"
+#include "PWGCF/FemtoDream/Core/femtoDreamTrackSelection.h"
+#include "PWGCF/FemtoDream/Core/femtoDreamUtils.h"
 
-#include <string>
-#include <vector>
+#include "PWGHF/Core/HfHelper.h"
+#include "PWGHF/Core/HfMlResponseLcToPKPi.h"
+#include "PWGHF/DataModel/CandidateReconstructionTables.h"
+#include "PWGHF/DataModel/CandidateSelectionTables.h"
+#include "PWGHF/Utils/utilsBfieldCCDB.h"
+#include "PWGHF/Utils/utilsEvSelHf.h"
+#include "PWGHF/Core/CentralityEstimation.h"
+#include "PWGHF/Core/SelectorCuts.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -407,7 +410,7 @@ struct HfFemtoDreamProducer {
       multNtr = col.multTracklets();
     }
 
-    const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, CentralityEstimator::None, aod::BCFullInfos>(col, mult, ccdb, qaRegistry, nullptr);
+    const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, CentralityEstimator::None, aod::BCsWithTimestamps>(col, mult, ccdb, qaRegistry);
 
     qaRegistry.fill(HIST("hEventQA"), 1 + Event::All);
 

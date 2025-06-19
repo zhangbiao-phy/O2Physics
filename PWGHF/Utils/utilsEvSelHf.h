@@ -158,7 +158,6 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   o2::framework::Configurable<float> centralityMin{"centralityMin", 0., "Minimum centrality"};
   o2::framework::Configurable<float> centralityMax{"centralityMax", 100., "Maximum centrality"};
   o2::framework::Configurable<bool> useSel8Trigger{"useSel8Trigger", true, "Apply the sel8 event selection"};
-  o2::framework::Configurable<bool> useUpcTrigger{"useUpcTrigger", false, "Apply the upc event selection"};
   o2::framework::Configurable<int> triggerClass{"triggerClass", -1, "Trigger class different from sel8 (e.g. kINT7 for Run2) used only if useSel8Trigger is false"};
   o2::framework::Configurable<bool> useTvxTrigger{"useTvxTrigger", true, "Apply TVX trigger sel"};
   o2::framework::Configurable<bool> useTimeFrameBorderCut{"useTimeFrameBorderCut", true, "Apply TF border cut"};
@@ -215,13 +214,13 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   SGCutParHolder setSGPreselection()
   {
     SGCutParHolder sgCuts;
-    sgCuts.SetNDtColl(1);       // Minimum number of sigma around the collision
+    sgCuts.SetNDtcoll(1);       // Minimum number of sigma around the collision
     sgCuts.SetMinNBCs(2);       // Minimum number of bunch crossings
     sgCuts.SetNTracks(2, 1000); // Minimum and maximum number of PV contributors
-    sgCuts.SetMaxFitTime(34.f); // Maximum FIT time in ns
+    sgCuts.SetMaxFITtime(34.f); // Maximum FIT time in ns
 
     // Set FIT amplitudes: FV0, FT0A, FT0C, FDDA, FDDC
-    sgCuts.SetFitAmpLimits({-1.f, 150.f, 50.f, -1.f, -1.f});
+    sgCuts.SetFITAmpLimits({-1.f, 150.f, 50.f, -1.f, -1.f});
 
     return sgCuts;
   }
@@ -271,8 +270,7 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
   /// \param registry reference to the histogram registry needed for zorro
   /// \return bitmask with the event selection criteria not satisfied by the collision
   template <bool useEvSel, o2::hf_centrality::CentralityEstimator centEstimator, typename BCs, typename Coll>
-  uint32_t getHfCollisionRejectionMask(const Coll& collision, float& centrality, o2::framework::Service<o2::ccdb::BasicCCDBManager> const& ccdb, o2::framework::HistogramRegistry& registry,
-                                       const BCs* bcs = nullptr)
+  uint32_t getHfCollisionRejectionMask(const Coll& collision, float& centrality, o2::framework::Service<o2::ccdb::BasicCCDBManager> const& ccdb, o2::framework::HistogramRegistry& registry)
   {
     uint32_t rejectionMask{0}; // 32 bits, in case new ev. selections will be added
 
@@ -331,24 +329,7 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
           SETBIT(rejectionMask, EventRejection::Occupancy);
         }
       }
-
-      if (useUpcTrigger) {
-        if (!bcs) {
-          throw std::runtime_error("UPC selection requested but no BC table provided!");
-        }
-        SGCutParHolder sgCuts = setSGPreselection();
-        auto bc = collision.template foundBC_as<BCs>();
-        auto bcRange = udhelpers::compatibleBCs(collision, sgCuts.NDtcoll(), *bcs, sgCuts.minNBCs());
-        auto sgSelectionResult = sgSelector.IsSelected(sgCuts, collision, bcRange, bc);
-        int upcEventType = sgSelectionResult.value;
-        if (upcEventType > EventTypeUpc::DoubleGap) {
-          SETBIT(rejectionMask, EventRejection::UpcEventCut);
-        } else {
-          hUPCollisions->Fill(upcEventType);
-        }
-      }
     }
-
     /// number of PV contributors
     if (collision.numContrib() < nPvContributorsMin) {
       SETBIT(rejectionMask, EventRejection::NContrib);
@@ -389,6 +370,27 @@ struct HfEventSelection : o2::framework::ConfigurableGroup {
     }
 
     return rejectionMask;
+  }
+
+  template <bool useEvSel, o2::hf_centrality::CentralityEstimator centEstimator, typename BCsType, typename Coll>
+  uint32_t getHfCollisionRejectionMaskWithUPC(const Coll& collision, float& centrality, o2::framework::Service<o2::ccdb::BasicCCDBManager> const& ccdb, o2::framework::HistogramRegistry& registry, const BCsType& bcs)
+  {
+    auto rejectionMaskWithUPC = getHfCollisionRejectionMask<true, centEstimator, BCsType>(collision, centrality, ccdb, registry);
+
+    if (useEvSel) {
+      SGCutParHolder sgCuts = setSGPreselection();
+      auto bc = collision.template foundBC_as<BCsType>();
+      auto bcRange = udhelpers::compatibleBCs(collision, sgCuts.NDtcoll(), bcs, sgCuts.minNBCs());
+      auto sgSelectionResult = sgSelector.IsSelected(sgCuts, collision, bcRange, bc);
+      int upcEventType = sgSelectionResult.value;
+      if (upcEventType > EventTypeUpc::DoubleGap) {
+        SETBIT(rejectionMaskWithUPC, EventRejection::UpcEventCut);
+      } else {
+        hUPCollisions->Fill(upcEventType);
+      }
+    }
+
+    return rejectionMaskWithUPC;
   }
 
   /// \brief Fills histograms for monitoring event selections satisfied by the collision.

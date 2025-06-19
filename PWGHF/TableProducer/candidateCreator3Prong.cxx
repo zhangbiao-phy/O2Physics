@@ -134,18 +134,21 @@ struct HfCandidateCreator3Prong {
 
   void init(InitContext const&)
   {
-    std::array<bool, 6> doprocessDF{doprocessPvRefitWithDCAFitterN, doprocessNoPvRefitWithDCAFitterN,
+    std::array<bool, 8> doprocessDF{doprocessPvRefitWithDCAFitterN, doprocessNoPvRefitWithDCAFitterN,
                                     doprocessPvRefitWithDCAFitterNCentFT0C, doprocessNoPvRefitWithDCAFitterNCentFT0C,
-                                    doprocessPvRefitWithDCAFitterNCentFT0M, doprocessNoPvRefitWithDCAFitterNCentFT0M};
-    std::array<bool, 6> doprocessKF{doprocessPvRefitWithKFParticle, doprocessNoPvRefitWithKFParticle,
+                                    doprocessPvRefitWithDCAFitterNCentFT0M, doprocessNoPvRefitWithDCAFitterNCentFT0M, doprocessPvRefitWithDCAFitterNUPC, doprocessNoPvRefitWithDCAFitterNUPC};
+    std::array<bool, 8> doprocessKF{doprocessPvRefitWithKFParticle, doprocessNoPvRefitWithKFParticle,
                                     doprocessPvRefitWithKFParticleCentFT0C, doprocessNoPvRefitWithKFParticleCentFT0C,
-                                    doprocessPvRefitWithKFParticleCentFT0M, doprocessNoPvRefitWithKFParticleCentFT0M};
+                                    doprocessPvRefitWithKFParticleCentFT0M, doprocessNoPvRefitWithKFParticleCentFT0M, doprocessPvRefitWithKFParticleUPC, doprocessNoPvRefitWithKFParticleUPC};
     if ((std::accumulate(doprocessDF.begin(), doprocessDF.end(), 0) + std::accumulate(doprocessKF.begin(), doprocessKF.end(), 0)) != 1) {
       LOGP(fatal, "One and only one process function must be enabled at a time.");
     }
-
-    std::array<bool, 3> processesCollisions = {doprocessCollisions, doprocessCollisionsCentFT0C, doprocessCollisionsCentFT0M};
+    std::array<bool, 4> processesCollisions = {doprocessCollisions, doprocessCollisionsCentFT0C, doprocessCollisionsCentFT0M, doprocessCollisionsUPC};
     const int nProcessesCollisions = std::accumulate(processesCollisions.begin(), processesCollisions.end(), 0);
+
+    std::array<bool, 5> processesCollisionsUPC = {doprocessPvRefitWithDCAFitterNUPC, doprocessNoPvRefitWithDCAFitterNUPC, doprocessPvRefitWithKFParticleUPC, doprocessNoPvRefitWithKFParticleUPC, doprocessCollisionsUPC};
+    const int nProcessesCollisionsUPC = std::accumulate(processesCollisionsUPC.begin(), processesCollisionsUPC.end(), 0);
+
     if (nProcessesCollisions > 1) {
       LOGP(fatal, "At most one process function for collision monitoring can be enabled at a time.");
     }
@@ -160,7 +163,9 @@ struct HfCandidateCreator3Prong {
         LOGP(fatal, "Process function for collision monitoring not correctly enabled. Did you enable \"processCollisionsCentFT0M\"?");
       }
     }
-
+    if (nProcessesCollisionsUPC > 1 && isRun2) {
+      LOGP(fatal, "Process function for UPC is only available in Run 3!");
+    }
     std::array<bool, 4> creationFlags = {createDplus, createDs, createLc, createXic};
     if (std::accumulate(creationFlags.begin(), creationFlags.end(), 0) == 0) {
       LOGP(fatal, "At least one particle specie should be enabled for the creation.");
@@ -234,11 +239,8 @@ struct HfCandidateCreator3Prong {
     }
   }
 
-  template <bool doPvRefit = false, o2::hf_centrality::CentralityEstimator centEstimator, typename Coll, typename Cand, typename BCsType>
-  void runCreator3ProngWithDCAFitterN(Coll const&,
-                                      Cand const& rowsTrackIndexProng3,
-                                      TracksWCovExtraPidPiKaPr const&,
-                                      BCsType const& bcs)
+  template <bool doPvRefit = false, bool useUpcSel = false, o2::hf_centrality::CentralityEstimator centEstimator, typename Coll, typename Cand, typename BCsType>
+  void runCreator3ProngWithDCAFitterN(Coll const&, Cand const& rowsTrackIndexProng3, TracksWCovExtraPidPiKaPr const&, BCsType const& bcs)
   {
     // loop over triplets of track indices
     for (const auto& rowTrackIndexProng3 : rowsTrackIndexProng3) {
@@ -246,7 +248,12 @@ struct HfCandidateCreator3Prong {
       /// reject candidates in collisions not satisfying the event selections
       auto collision = rowTrackIndexProng3.template collision_as<Coll>();
       float centrality{-1.f};
-      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, BCsType>(collision, centrality, ccdb, registry, &bcs);
+      uint32_t rejectionMask{0};
+      if constexpr (useUpcSel) {
+        rejectionMask = hfEvSel.getHfCollisionRejectionMaskWithUPC<true, centEstimator, BCsType>(collision, centrality, ccdb, registry, bcs);
+      } else {
+        rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, BCsType>(collision, centrality, ccdb, registry);
+      }
       if (rejectionMask != 0) {
         /// at least one event selection not satisfied --> reject the candidate
         continue;
@@ -402,7 +409,7 @@ struct HfCandidateCreator3Prong {
     }
   }
 
-  template <bool doPvRefit = false, o2::hf_centrality::CentralityEstimator centEstimator, typename Coll, typename Cand, typename BCsType>
+  template <bool doPvRefit = false, bool useUpcSel = false, o2::hf_centrality::CentralityEstimator centEstimator, typename Coll, typename Cand, typename BCsType>
   void runCreator3ProngWithKFParticle(Coll const&,
                                       Cand const& rowsTrackIndexProng3,
                                       TracksWCovExtraPidPiKaPr const&,
@@ -412,7 +419,12 @@ struct HfCandidateCreator3Prong {
       /// reject candidates in collisions not satisfying the event selections
       auto collision = rowTrackIndexProng3.template collision_as<Coll>();
       float centrality{-1.f};
-      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, BCsType>(collision, centrality, ccdb, registry, &bcs);
+      uint32_t rejectionMask{0};
+      if constexpr (useUpcSel) {
+        rejectionMask = hfEvSel.getHfCollisionRejectionMaskWithUPC<true, centEstimator, BCsType>(collision, centrality, ccdb, registry, bcs);
+      } else {
+        rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, centEstimator, BCsType>(collision, centrality, ccdb, registry);
+      }
       if (rejectionMask != 0) {
         /// at least one event selection not satisfied --> reject the candidate
         continue;
@@ -425,7 +437,7 @@ struct HfCandidateCreator3Prong {
       /// Set the magnetic field from ccdb.
       /// The static instance of the propagator was already modified in the HFTrackIndexSkimCreator,
       /// but this is not true when running on Run2 data/MC already converted into AO2Ds.
-      auto bc = collision.template bc_as<BCsType>();
+      auto bc = collision.template bc_as<aod::BCsWithTimestamps>();
       if (runNumber != bc.runNumber()) {
         LOG(info) << ">>>>>>>>>>>> Current run number: " << runNumber;
         initCCDB(bc, runNumber, ccdb, isRun2 ? ccdbPathGrp : ccdbPathGrpMag, nullptr, isRun2);
@@ -650,9 +662,9 @@ struct HfCandidateCreator3Prong {
   void processPvRefitWithDCAFitterN(soa::Join<aod::Collisions, aod::EvSels> const& collisions,
                                     FilteredPvRefitHf3Prongs const& rowsTrackIndexProng3,
                                     TracksWCovExtraPidPiKaPr const& tracks,
-                                    aod::BCFullInfos const& bcWithTimeStamps)
+                                    aod::BCsWithTimestamps const& bcWithTimeStamps)
   {
-    runCreator3ProngWithDCAFitterN</*doPvRefit*/ true, CentralityEstimator::None>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+    runCreator3ProngWithDCAFitterN</*doPvRefit*/ true, false, CentralityEstimator::None>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
   }
   PROCESS_SWITCH(HfCandidateCreator3Prong, processPvRefitWithDCAFitterN, "Run candidate creator using DCA fitter with PV refit and w/o centrality selections", false);
 
@@ -660,9 +672,9 @@ struct HfCandidateCreator3Prong {
   void processNoPvRefitWithDCAFitterN(soa::Join<aod::Collisions, aod::EvSels> const& collisions,
                                       FilteredHf3Prongs const& rowsTrackIndexProng3,
                                       TracksWCovExtraPidPiKaPr const& tracks,
-                                      aod::BCFullInfos const& bcWithTimeStamps)
+                                      aod::BCsWithTimestamps const& bcWithTimeStamps)
   {
-    runCreator3ProngWithDCAFitterN</*doPvRefit*/ false, CentralityEstimator::None>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+    runCreator3ProngWithDCAFitterN</*doPvRefit*/ false, false, CentralityEstimator::None>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
   }
   PROCESS_SWITCH(HfCandidateCreator3Prong, processNoPvRefitWithDCAFitterN, "Run candidate creator using DCA fitter without PV refit and w/o centrality selections", true);
 
@@ -670,9 +682,9 @@ struct HfCandidateCreator3Prong {
   void processPvRefitWithKFParticle(soa::Join<aod::Collisions, aod::EvSels> const& collisions,
                                     FilteredPvRefitHf3Prongs const& rowsTrackIndexProng3,
                                     TracksWCovExtraPidPiKaPr const& tracks,
-                                    aod::BCFullInfos const& bcWithTimeStamps)
+                                    aod::BCsWithTimestamps const& bcWithTimeStamps)
   {
-    runCreator3ProngWithKFParticle</*doPvRefit*/ true, CentralityEstimator::None>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+    runCreator3ProngWithKFParticle</*doPvRefit*/ true, false, CentralityEstimator::None>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
   }
   PROCESS_SWITCH(HfCandidateCreator3Prong, processPvRefitWithKFParticle, "Run candidate creator using KFParticle package with PV refit and w/o centrality selections", false);
 
@@ -680,9 +692,9 @@ struct HfCandidateCreator3Prong {
   void processNoPvRefitWithKFParticle(soa::Join<aod::Collisions, aod::EvSels> const& collisions,
                                       FilteredHf3Prongs const& rowsTrackIndexProng3,
                                       TracksWCovExtraPidPiKaPr const& tracks,
-                                      aod::BCFullInfos const& bcWithTimeStamps)
+                                      aod::BCsWithTimestamps const& bcWithTimeStamps)
   {
-    runCreator3ProngWithKFParticle</*doPvRefit*/ false, CentralityEstimator::None>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+    runCreator3ProngWithKFParticle</*doPvRefit*/ false, false, CentralityEstimator::None>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
   }
   PROCESS_SWITCH(HfCandidateCreator3Prong, processNoPvRefitWithKFParticle, "Run candidate creator using KFParticle package without PV refit and w/o centrality selections", false);
 
@@ -696,9 +708,9 @@ struct HfCandidateCreator3Prong {
   void processPvRefitWithDCAFitterNCentFT0C(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Cs> const& collisions,
                                             FilteredPvRefitHf3Prongs const& rowsTrackIndexProng3,
                                             TracksWCovExtraPidPiKaPr const& tracks,
-                                            aod::BCFullInfos const& bcWithTimeStamps)
+                                            aod::BCsWithTimestamps const& bcWithTimeStamps)
   {
-    runCreator3ProngWithDCAFitterN</*doPvRefit*/ true, CentralityEstimator::FT0C>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+    runCreator3ProngWithDCAFitterN</*doPvRefit*/ true, false, CentralityEstimator::FT0C>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
   }
   PROCESS_SWITCH(HfCandidateCreator3Prong, processPvRefitWithDCAFitterNCentFT0C, "Run candidate creator using DCA fitter with PV refit and w/ centrality selection on FT0C", false);
 
@@ -706,9 +718,9 @@ struct HfCandidateCreator3Prong {
   void processNoPvRefitWithDCAFitterNCentFT0C(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Cs> const& collisions,
                                               FilteredHf3Prongs const& rowsTrackIndexProng3,
                                               TracksWCovExtraPidPiKaPr const& tracks,
-                                              aod::BCFullInfos const& bcWithTimeStamps)
+                                              aod::BCsWithTimestamps const& bcWithTimeStamps)
   {
-    runCreator3ProngWithDCAFitterN</*doPvRefit*/ false, CentralityEstimator::FT0C>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+    runCreator3ProngWithDCAFitterN</*doPvRefit*/ false, false, CentralityEstimator::FT0C>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
   }
   PROCESS_SWITCH(HfCandidateCreator3Prong, processNoPvRefitWithDCAFitterNCentFT0C, "Run candidate creator using DCA fitter without PV refit and  w/ centrality selection on FT0C", false);
 
@@ -716,9 +728,9 @@ struct HfCandidateCreator3Prong {
   void processPvRefitWithKFParticleCentFT0C(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Cs> const& collisions,
                                             FilteredPvRefitHf3Prongs const& rowsTrackIndexProng3,
                                             TracksWCovExtraPidPiKaPr const& tracks,
-                                            aod::BCFullInfos const& bcWithTimeStamps)
+                                            aod::BCsWithTimestamps const& bcWithTimeStamps)
   {
-    runCreator3ProngWithKFParticle</*doPvRefit*/ true, CentralityEstimator::FT0C>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+    runCreator3ProngWithKFParticle</*doPvRefit*/ true, false, CentralityEstimator::FT0C>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
   }
   PROCESS_SWITCH(HfCandidateCreator3Prong, processPvRefitWithKFParticleCentFT0C, "Run candidate creator using KFParticle package with PV refit and w/ centrality selection on FT0C", false);
 
@@ -726,9 +738,9 @@ struct HfCandidateCreator3Prong {
   void processNoPvRefitWithKFParticleCentFT0C(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Cs> const& collisions,
                                               FilteredHf3Prongs const& rowsTrackIndexProng3,
                                               TracksWCovExtraPidPiKaPr const& tracks,
-                                              aod::BCFullInfos const& bcWithTimeStamps)
+                                              aod::BCsWithTimestamps const& bcWithTimeStamps)
   {
-    runCreator3ProngWithKFParticle</*doPvRefit*/ false, CentralityEstimator::FT0C>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+    runCreator3ProngWithKFParticle</*doPvRefit*/ false, false, CentralityEstimator::FT0C>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
   }
   PROCESS_SWITCH(HfCandidateCreator3Prong, processNoPvRefitWithKFParticleCentFT0C, "Run candidate creator using KFParticle package without PV refit and  w/ centrality selection on FT0C", false);
 
@@ -742,9 +754,9 @@ struct HfCandidateCreator3Prong {
   void processPvRefitWithDCAFitterNCentFT0M(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms> const& collisions,
                                             FilteredPvRefitHf3Prongs const& rowsTrackIndexProng3,
                                             TracksWCovExtraPidPiKaPr const& tracks,
-                                            aod::BCFullInfos const& bcWithTimeStamps)
+                                            aod::BCsWithTimestamps const& bcWithTimeStamps)
   {
-    runCreator3ProngWithDCAFitterN</*doPvRefit*/ true, CentralityEstimator::FT0M>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+    runCreator3ProngWithDCAFitterN</*doPvRefit*/ true, false, CentralityEstimator::FT0M>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
   }
   PROCESS_SWITCH(HfCandidateCreator3Prong, processPvRefitWithDCAFitterNCentFT0M, "Run candidate creator using DCA fitter with PV refit and w/ centrality selection on FT0M", false);
 
@@ -752,9 +764,9 @@ struct HfCandidateCreator3Prong {
   void processNoPvRefitWithDCAFitterNCentFT0M(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms> const& collisions,
                                               FilteredHf3Prongs const& rowsTrackIndexProng3,
                                               TracksWCovExtraPidPiKaPr const& tracks,
-                                              aod::BCFullInfos const& bcWithTimeStamps)
+                                              aod::BCsWithTimestamps const& bcWithTimeStamps)
   {
-    runCreator3ProngWithDCAFitterN</*doPvRefit*/ false, CentralityEstimator::FT0M>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+    runCreator3ProngWithDCAFitterN</*doPvRefit*/ false, false, CentralityEstimator::FT0M>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
   }
   PROCESS_SWITCH(HfCandidateCreator3Prong, processNoPvRefitWithDCAFitterNCentFT0M, "Run candidate creator using DCA fitter without PV refit and  w/ centrality selection on FT0M", false);
 
@@ -762,9 +774,9 @@ struct HfCandidateCreator3Prong {
   void processPvRefitWithKFParticleCentFT0M(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms> const& collisions,
                                             FilteredPvRefitHf3Prongs const& rowsTrackIndexProng3,
                                             TracksWCovExtraPidPiKaPr const& tracks,
-                                            aod::BCFullInfos const& bcWithTimeStamps)
+                                            aod::BCsWithTimestamps const& bcWithTimeStamps)
   {
-    runCreator3ProngWithKFParticle</*doPvRefit*/ true, CentralityEstimator::FT0M>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+    runCreator3ProngWithKFParticle</*doPvRefit*/ true, false, CentralityEstimator::FT0M>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
   }
   PROCESS_SWITCH(HfCandidateCreator3Prong, processPvRefitWithKFParticleCentFT0M, "Run candidate creator using KFParticle package with PV refit and w/ centrality selection on FT0M", false);
 
@@ -772,11 +784,57 @@ struct HfCandidateCreator3Prong {
   void processNoPvRefitWithKFParticleCentFT0M(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms> const& collisions,
                                               FilteredHf3Prongs const& rowsTrackIndexProng3,
                                               TracksWCovExtraPidPiKaPr const& tracks,
-                                              aod::BCFullInfos const& bcWithTimeStamps)
+                                              aod::BCsWithTimestamps const& bcWithTimeStamps)
   {
-    runCreator3ProngWithKFParticle</*doPvRefit*/ false, CentralityEstimator::FT0M>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+    runCreator3ProngWithKFParticle</*doPvRefit*/ false, false, CentralityEstimator::FT0M>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
   }
   PROCESS_SWITCH(HfCandidateCreator3Prong, processNoPvRefitWithKFParticleCentFT0M, "Run candidate creator using KFParticle package without PV refit and  w/ centrality selection on FT0M", false);
+
+  /////////////////////////////////////////////
+  ///                                       ///
+  ///   with centrality selection on UPC   ///
+  ///                                       ///
+  /////////////////////////////////////////////
+
+  /// @brief process function using DCA fitter  w/ PV refit and w/ centrality selection on UPC
+  void processPvRefitWithDCAFitterNUPC(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms> const& collisions,
+                                       FilteredPvRefitHf3Prongs const& rowsTrackIndexProng3,
+                                       TracksWCovExtraPidPiKaPr const& tracks,
+                                       aod::BCFullInfos const& bcWithTimeStamps, aod::FT0s const& /*ft0s*/, aod::FV0As const& /*fv0as*/, aod::FDDs const& /*fdds*/, aod::Zdcs const& /*zdcs*/)
+  {
+    runCreator3ProngWithDCAFitterN</*doPvRefit*/ true, true, CentralityEstimator::None>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+  }
+  PROCESS_SWITCH(HfCandidateCreator3Prong, processPvRefitWithDCAFitterNUPC, "Run candidate creator using DCA fitter with PV refit and w/ centrality selection on UPC", false);
+
+  /// @brief process function using DCA fitter  w/o PV refit and  w/ centrality selection on UPC
+  void processNoPvRefitWithDCAFitterNUPC(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms> const& collisions,
+                                         FilteredHf3Prongs const& rowsTrackIndexProng3,
+                                         TracksWCovExtraPidPiKaPr const& tracks,
+                                         aod::BCFullInfos const& bcWithTimeStamps, aod::FT0s const& /*ft0s*/, aod::FV0As const& /*fv0as*/, aod::FDDs const& /*fdds*/, aod::Zdcs const& /*zdcs*/)
+  {
+    runCreator3ProngWithDCAFitterN</*doPvRefit*/ false, true, CentralityEstimator::None>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+  }
+  PROCESS_SWITCH(HfCandidateCreator3Prong, processNoPvRefitWithDCAFitterNUPC, "Run candidate creator using DCA fitter without PV refit and  w/ centrality selection on UPC", false);
+
+  /// @brief process function using KFParticle package  w/ PV refit and w/ centrality selection on UPC
+  void processPvRefitWithKFParticleUPC(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms> const& collisions,
+                                       FilteredPvRefitHf3Prongs const& rowsTrackIndexProng3,
+                                       TracksWCovExtraPidPiKaPr const& tracks,
+                                       aod::BCFullInfos const& bcWithTimeStamps, aod::FT0s const& /*ft0s*/, aod::FV0As const& /*fv0as*/, aod::FDDs const& /*fdds*/, aod::Zdcs const& /*zdcs*/)
+  {
+    runCreator3ProngWithKFParticle</*doPvRefit*/ true, true, CentralityEstimator::None>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+  }
+  PROCESS_SWITCH(HfCandidateCreator3Prong, processPvRefitWithKFParticleUPC, "Run candidate creator using KFParticle package with PV refit and w/ centrality selection on UPC", false);
+
+  /// @brief process function using KFParticle package  w/o PV refit and  w/ centrality selection on UPC
+  void processNoPvRefitWithKFParticleUPC(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms> const& collisions,
+                                         FilteredHf3Prongs const& rowsTrackIndexProng3,
+                                         TracksWCovExtraPidPiKaPr const& tracks,
+                                         aod::BCFullInfos const& bcWithTimeStamps, aod::FT0s const& /*ft0s*/, aod::FV0As const& /*fv0as*/, aod::FDDs const& /*fdds*/, aod::Zdcs const& /*zdcs*/)
+  {
+    runCreator3ProngWithKFParticle</*doPvRefit*/ false, true, CentralityEstimator::None>(collisions, rowsTrackIndexProng3, tracks, bcWithTimeStamps);
+  }
+  PROCESS_SWITCH(HfCandidateCreator3Prong, processNoPvRefitWithKFParticleUPC, "Run candidate creator using KFParticle package without PV refit and  w/ centrality selection on UPC", false);
 
   ///////////////////////////////////////////////////////////
   ///                                                     ///
@@ -785,7 +843,7 @@ struct HfCandidateCreator3Prong {
   ///////////////////////////////////////////////////////////
 
   /// @brief process function to monitor collisions - no centrality
-  void processCollisions(soa::Join<aod::Collisions, aod::EvSels> const& collisions, aod::BCFullInfos const& bcs)
+  void processCollisions(soa::Join<aod::Collisions, aod::EvSels> const& collisions, aod::BCsWithTimestamps const& /*bcWithTimeStamps*/)
   {
     /// loop over collisions
     for (const auto& collision : collisions) {
@@ -793,7 +851,7 @@ struct HfCandidateCreator3Prong {
       /// bitmask with event. selection info
       float centrality{-1.f};
       float occupancy = getOccupancyColl(collision, OccupancyEstimator::Its);
-      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, CentralityEstimator::None, aod::BCFullInfos>(collision, centrality, ccdb, registry, &bcs);
+      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, CentralityEstimator::None, aod::BCsWithTimestamps>(collision, centrality, ccdb, registry);
 
       /// monitor the satisfied event selections
       hfEvSel.fillHistograms(collision, rejectionMask, centrality, occupancy);
@@ -803,7 +861,7 @@ struct HfCandidateCreator3Prong {
   PROCESS_SWITCH(HfCandidateCreator3Prong, processCollisions, "Collision monitoring - no centrality", true);
 
   /// @brief process function to monitor collisions - FT0C centrality
-  void processCollisionsCentFT0C(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Cs> const& collisions, aod::BCFullInfos const& bcs)
+  void processCollisionsCentFT0C(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Cs> const& collisions, aod::BCsWithTimestamps const& /*bcWithTimeStamps*/)
   {
     /// loop over collisions
     for (const auto& collision : collisions) {
@@ -811,7 +869,7 @@ struct HfCandidateCreator3Prong {
       /// bitmask with event. selection info
       float centrality{-1.f};
       float occupancy = getOccupancyColl(collision, OccupancyEstimator::Its);
-      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, CentralityEstimator::FT0C, aod::BCFullInfos>(collision, centrality, ccdb, registry, &bcs);
+      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, CentralityEstimator::FT0C, aod::BCsWithTimestamps>(collision, centrality, ccdb, registry);
 
       /// monitor the satisfied event selections
       hfEvSel.fillHistograms(collision, rejectionMask, centrality, occupancy);
@@ -821,7 +879,7 @@ struct HfCandidateCreator3Prong {
   PROCESS_SWITCH(HfCandidateCreator3Prong, processCollisionsCentFT0C, "Collision monitoring - FT0C centrality", false);
 
   /// @brief process function to monitor collisions - FT0M centrality
-  void processCollisionsCentFT0M(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms> const& collisions, aod::BCFullInfos const& bcs)
+  void processCollisionsCentFT0M(soa::Join<aod::Collisions, aod::EvSels, aod::CentFT0Ms> const& collisions, aod::BCsWithTimestamps const& /*bcWithTimeStamps*/)
   {
     /// loop over collisions
     for (const auto& collision : collisions) {
@@ -829,7 +887,7 @@ struct HfCandidateCreator3Prong {
       /// bitmask with event. selection info
       float centrality{-1.f};
       float occupancy = getOccupancyColl(collision, OccupancyEstimator::Its);
-      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, CentralityEstimator::FT0M, aod::BCFullInfos>(collision, centrality, ccdb, registry, &bcs);
+      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, CentralityEstimator::FT0M, aod::BCsWithTimestamps>(collision, centrality, ccdb, registry);
 
       /// monitor the satisfied event selections
       hfEvSel.fillHistograms(collision, rejectionMask, centrality, occupancy);
@@ -837,6 +895,24 @@ struct HfCandidateCreator3Prong {
     } /// end loop over collisions
   }
   PROCESS_SWITCH(HfCandidateCreator3Prong, processCollisionsCentFT0M, "Collision monitoring - FT0M centrality", false);
+
+  /// @brief process function to monitor collisions - UPC
+  void processCollisionsUPC(soa::Join<aod::Collisions, aod::EvSels> const& collisions, aod::BCFullInfos const& bcs, aod::FT0s const& /*ft0s*/, aod::FV0As const& /*fv0as*/, aod::FDDs const& /*fdds*/, aod::Zdcs const& /*zdcs*/)
+  {
+    /// loop over collisions
+    for (const auto& collision : collisions) {
+
+      /// bitmask with event. selection info
+      float centrality{-1.f};
+      float occupancy = getOccupancyColl(collision, OccupancyEstimator::Its);
+      const auto rejectionMask = hfEvSel.getHfCollisionRejectionMaskWithUPC<true, CentralityEstimator::None, aod::BCFullInfos>(collision, centrality, ccdb, registry, bcs);
+
+      /// monitor the satisfied event selections
+      hfEvSel.fillHistograms(collision, rejectionMask, centrality, occupancy);
+
+    } /// end loop over collisions
+  }
+  PROCESS_SWITCH(HfCandidateCreator3Prong, processCollisionsUPC, "Collision monitoring - UPC", false);
 };
 
 /// Extends the base table with expression columns.
@@ -854,6 +930,7 @@ struct HfCandidateCreator3ProngExpressions {
 
   HfEventSelectionMc hfEvSelMc; // mc event selection and monitoring
 
+  using BCsInfo = soa::Join<aod::BCs, aod::Timestamps, aod::BcSels>;
   using McCollisionsNoCents = soa::Join<aod::Collisions, aod::EvSels, aod::McCollisionLabels>;
   using McCollisionsFT0Cs = soa::Join<aod::Collisions, aod::EvSels, aod::McCollisionLabels, aod::CentFT0Cs>;
   using McCollisionsFT0Ms = soa::Join<aod::Collisions, aod::EvSels, aod::McCollisionLabels, aod::CentFT0Ms>;
@@ -890,7 +967,7 @@ struct HfCandidateCreator3ProngExpressions {
                           aod::McParticles const& mcParticles,
                           CCs const& collInfos,
                           McCollisions const& mcCollisions,
-                          aod::BCFullInfos const&)
+                          BCsInfo const&)
   {
     rowCandidateProng3->bindExternalIndices(&tracks);
 
@@ -1089,14 +1166,14 @@ struct HfCandidateCreator3ProngExpressions {
       int nSplitColl = 0;
       if constexpr (centEstimator == CentralityEstimator::FT0C) {
         const auto collSlice = collInfos.sliceBy(colPerMcCollisionFT0C, mcCollision.globalIndex());
-        rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<aod::BCFullInfos, centEstimator>(mcCollision, collSlice, centrality);
+        rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<BCsInfo, centEstimator>(mcCollision, collSlice, centrality);
       } else if constexpr (centEstimator == CentralityEstimator::FT0M) {
         const auto collSlice = collInfos.sliceBy(colPerMcCollisionFT0M, mcCollision.globalIndex());
         nSplitColl = collSlice.size();
-        rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<aod::BCFullInfos, centEstimator>(mcCollision, collSlice, centrality);
+        rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<BCsInfo, centEstimator>(mcCollision, collSlice, centrality);
       } else if constexpr (centEstimator == CentralityEstimator::None) {
         const auto collSlice = collInfos.sliceBy(colPerMcCollision, mcCollision.globalIndex());
-        rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<aod::BCFullInfos, centEstimator>(mcCollision, collSlice, centrality);
+        rejectionMask = hfEvSelMc.getHfMcCollisionRejectionMask<BCsInfo, centEstimator>(mcCollision, collSlice, centrality);
       }
       hfEvSelMc.fillHistograms<centEstimator>(mcCollision, rejectionMask, nSplitColl);
       if (rejectionMask != 0) {
@@ -1114,7 +1191,7 @@ struct HfCandidateCreator3ProngExpressions {
                  aod::McParticles const& mcParticles,
                  McCollisionsNoCents const& collInfos,
                  aod::McCollisions const& mcCollisions,
-                 aod::BCFullInfos const& BCsInfo)
+                 BCsInfo const& BCsInfo)
   {
     runCreator3ProngMc<CentralityEstimator::None>(tracks, mcParticles, collInfos, mcCollisions, BCsInfo);
   }
@@ -1124,7 +1201,7 @@ struct HfCandidateCreator3ProngExpressions {
                          aod::McParticles const& mcParticles,
                          McCollisionsFT0Cs const& collInfos,
                          aod::McCollisions const& mcCollisions,
-                         aod::BCFullInfos const& BCsInfo)
+                         BCsInfo const& BCsInfo)
   {
     runCreator3ProngMc<CentralityEstimator::FT0C>(tracks, mcParticles, collInfos, mcCollisions, BCsInfo);
   }
@@ -1134,7 +1211,7 @@ struct HfCandidateCreator3ProngExpressions {
                          aod::McParticles const& mcParticles,
                          McCollisionsFT0Ms const& collInfos,
                          McCollisionsCentFT0Ms const& mcCollisions,
-                         aod::BCFullInfos const& BCsInfo)
+                         BCsInfo const& BCsInfo)
   {
     runCreator3ProngMc<CentralityEstimator::FT0M>(tracks, mcParticles, collInfos, mcCollisions, BCsInfo);
   }

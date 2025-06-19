@@ -17,27 +17,27 @@
 /// \author Marcello Di Costanzo <marcello.di.costanzo@cern.ch>, Politecnico and INFN Torino
 /// \author Luca Aglietta <luca.aglietta@unito.it>, Università and INFN Torino
 
-#include "PWGHF/Core/CentralityEstimation.h"
-#include "PWGHF/Utils/utilsEvSelHf.h"
-#include "PWGLF/DataModel/LFStrangenessPIDTables.h"
-#include "PWGLF/DataModel/LFStrangenessTables.h"
-
-#include "Common/CCDB/ctpRateFetcher.h"
-#include "Common/DataModel/Centrality.h"
-#include "Common/DataModel/EventSelection.h"
-#include "Common/DataModel/Multiplicity.h"
-#include "Common/DataModel/PIDResponse.h"
-#include "Common/DataModel/TrackSelectionTables.h"
-
-#include "CCDB/BasicCCDBManager.h"
-#include "Framework/AnalysisTask.h"
-#include "Framework/HistogramRegistry.h"
-#include "Framework/runDataProcessing.h"
+#include <string>
+#include <memory>
 
 #include "TPDGCode.h"
 
-#include <memory>
-#include <string>
+#include "CCDB/BasicCCDBManager.h"
+#include "Framework/AnalysisTask.h"
+#include "Framework/runDataProcessing.h"
+#include "Framework/HistogramRegistry.h"
+
+#include "Common/CCDB/ctpRateFetcher.h"
+#include "Common/DataModel/PIDResponse.h"
+#include "Common/DataModel/Centrality.h"
+#include "Common/DataModel/Multiplicity.h"
+#include "Common/DataModel/EventSelection.h"
+#include "Common/DataModel/TrackSelectionTables.h"
+#include "PWGLF/DataModel/LFStrangenessTables.h"
+#include "PWGLF/DataModel/LFStrangenessPIDTables.h"
+#include "PWGHF/Utils/utilsEvSelHf.h"
+#include "PWGHF/Core/CentralityEstimation.h"
+
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
@@ -346,7 +346,7 @@ struct HfTaskPidStudies {
     }
 
     float cent{-1.f};
-    const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, o2::hf_centrality::CentralityEstimator::None, soa::Join<aod::BCsWithTimestamps, aod::BcSels, aod::Run3MatchedToBCSparse>>(coll, cent, ccdb, registry, nullptr);
+    const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<true, o2::hf_centrality::CentralityEstimator::None, aod::BCsWithTimestamps>(coll, cent, ccdb, registry);
     /// monitor the satisfied event selections
     hfEvSel.fillHistograms(coll, rejectionMask, cent);
     return rejectionMask == 0;

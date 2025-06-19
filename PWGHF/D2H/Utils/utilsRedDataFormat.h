@@ -16,16 +16,16 @@
 #ifndef PWGHF_D2H_UTILS_UTILSREDDATAFORMAT_H_
 #define PWGHF_D2H_UTILS_UTILSREDDATAFORMAT_H_
 
-#include "PWGHF/Core/CentralityEstimation.h"
-#include "PWGHF/Utils/utilsEvSelHf.h"
+#include <cmath>
+
+#include <Rtypes.h>
 
 #include "CCDB/BasicCCDBManager.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/HistogramRegistry.h"
 
-#include <Rtypes.h>
-
-#include <cmath>
+#include "PWGHF/Core/CentralityEstimation.h"
+#include "PWGHF/Utils/utilsEvSelHf.h"
 
 namespace o2::hf_evsel
 {
@@ -37,7 +37,7 @@ template <bool useEvSel, o2::hf_centrality::CentralityEstimator centEstimator, t
 void checkEvSel(Coll const& collision, o2::hf_evsel::HfEventSelection& hfEvSel, int& zvtxColl, int& sel8Coll, int& zvtxAndSel8Coll, int& zvtxAndSel8CollAndSoftTrig, int& allSelColl, o2::framework::Service<o2::ccdb::BasicCCDBManager> const& ccdb, o2::framework::HistogramRegistry& registry)
 {
   float centrality{-1.f};
-  const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<useEvSel, o2::hf_centrality::CentralityEstimator::None, BCs>(collision, centrality, ccdb, registry, nullptr);
+  const auto rejectionMask = hfEvSel.getHfCollisionRejectionMask<useEvSel, o2::hf_centrality::CentralityEstimator::None, BCs>(collision, centrality, ccdb, registry);
   if (!TESTBIT(rejectionMask, o2::hf_evsel::EventRejection::Trigger)) {
     sel8Coll++;
   }
@@ -78,31 +78,6 @@ float getTpcTofNSigmaPi1(const T1& prong1)
   }
   if (hasTof) {
     return std::abs(prong1.tofNSigmaPi());
-  }
-  return defaultNSigma;
-}
-
-/// Helper function to retrive PID information of bachelor kaon from b-hadron decay
-/// \param prong1 kaon track from reduced data format, aod::HfRedBachProng0Tracks
-/// \return the combined TPC and TOF n-sigma for kaon
-template <typename T1>
-float getTpcTofNSigmaKa1(const T1& prong1)
-{
-  float defaultNSigma = -999.f; // -999.f is the default value set in TPCPIDResponse.h and PIDTOF.h
-
-  bool hasTpc = prong1.hasTPC();
-  bool hasTof = prong1.hasTOF();
-
-  if (hasTpc && hasTof) {
-    float tpcNSigma = prong1.tpcNSigmaKa();
-    float tofNSigma = prong1.tofNSigmaKa();
-    return std::sqrt(.5f * tpcNSigma * tpcNSigma + .5f * tofNSigma * tofNSigma);
-  }
-  if (hasTpc) {
-    return std::abs(prong1.tpcNSigmaKa());
-  }
-  if (hasTof) {
-    return std::abs(prong1.tofNSigmaKa());
   }
   return defaultNSigma;
 }
