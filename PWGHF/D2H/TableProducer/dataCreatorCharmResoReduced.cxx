@@ -15,11 +15,18 @@
 /// \author Luca Aglietta <luca.aglietta@cern.ch>, UniTO Turin
 /// \author Fabrizio Grosa <fabrizio.grosa@cern.ch>, CERN
 
-#include <algorithm>
-#include <cmath>
-#include <map>
-#include <string>
-#include <vector>
+#include "PWGHF/Core/HfHelper.h"
+#include "PWGHF/D2H/DataModel/ReducedDataModel.h"
+#include "PWGHF/D2H/Utils/utilsRedDataFormat.h"
+#include "PWGHF/DataModel/CandidateReconstructionTables.h"
+#include "PWGHF/DataModel/CandidateSelectionTables.h"
+#include "PWGHF/Utils/utilsBfieldCCDB.h"
+#include "PWGHF/Utils/utilsEvSelHf.h"
+#include "PWGLF/DataModel/LFStrangenessTables.h"
+
+#include "Common/Core/trackUtilities.h"
+#include "Common/DataModel/CollisionAssociationTables.h"
+#include "Common/DataModel/TrackSelectionTables.h"
 
 #include "CommonConstants/PhysicsConstants.h"
 #include "DCAFitter/DCAFitterN.h"
@@ -29,20 +36,11 @@
 #include "Framework/runDataProcessing.h"
 #include "ReconstructionDataFormats/DCA.h"
 
-#include "Common/Core/trackUtilities.h"
-#include "Common/DataModel/CollisionAssociationTables.h"
-#include "Common/DataModel/TrackSelectionTables.h"
-
-#include "PWGLF/DataModel/LFStrangenessTables.h"
-
-#include "PWGHF/Core/HfHelper.h"
-#include "PWGHF/DataModel/CandidateReconstructionTables.h"
-#include "PWGHF/DataModel/CandidateSelectionTables.h"
-#include "PWGHF/Utils/utilsBfieldCCDB.h"
-#include "PWGHF/Utils/utilsEvSelHf.h"
-
-#include "PWGHF/D2H/DataModel/ReducedDataModel.h"
-#include "PWGHF/D2H/Utils/utilsRedDataFormat.h"
+#include <algorithm>
+#include <cmath>
+#include <map>
+#include <string>
+#include <vector>
 
 using namespace o2;
 using namespace o2::analysis;

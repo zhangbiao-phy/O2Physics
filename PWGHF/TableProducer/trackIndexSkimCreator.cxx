@@ -21,23 +21,13 @@
 /// \author Federica Zanone <federica.zanone@cern.ch>, Heidelberg University
 /// \author Ruiqi Yin <ruiqi.yin@cern.ch>, Fudan University
 
-#include <algorithm> // std::find
-#include <iterator>  // std::distance
-#include <string>    // std::string
-#include <vector>    // std::vector
-
-#include "CommonConstants/PhysicsConstants.h"
-#include "CCDB/BasicCCDBManager.h"             // for PV refit
-#include "DataFormatsParameters/GRPMagField.h" // for PV refit
-#include "DataFormatsParameters/GRPObject.h"   // for PV refit
-#include "DCAFitter/DCAFitterN.h"
-#include "DetectorsBase/Propagator.h"     // for PV refit
-#include "DetectorsVertexing/PVertexer.h" // for PV refit
-#include "Framework/AnalysisTask.h"
-#include "Framework/HistogramRegistry.h"
-#include "Framework/runDataProcessing.h"
-#include "ReconstructionDataFormats/V0.h"
-#include "ReconstructionDataFormats/Vertex.h" // for PV refit
+#include "PWGHF/Core/CentralityEstimation.h"
+#include "PWGHF/Core/SelectorCuts.h"
+#include "PWGHF/DataModel/CandidateReconstructionTables.h"
+#include "PWGHF/Utils/utilsAnalysis.h"
+#include "PWGHF/Utils/utilsBfieldCCDB.h"
+#include "PWGHF/Utils/utilsEvSelHf.h"
+#include "PWGLF/DataModel/LFStrangenessTables.h"
 
 #include "Common/Core/TrackSelectorPID.h"
 #include "Common/Core/trackUtilities.h"
@@ -47,14 +37,23 @@
 #include "Common/DataModel/TrackSelectionTables.h"
 #include "Tools/ML/MlResponse.h"
 
-#include "PWGLF/DataModel/LFStrangenessTables.h"
+#include "CCDB/BasicCCDBManager.h" // for PV refit
+#include "CommonConstants/PhysicsConstants.h"
+#include "DCAFitter/DCAFitterN.h"
+#include "DataFormatsParameters/GRPMagField.h" // for PV refit
+#include "DataFormatsParameters/GRPObject.h"   // for PV refit
+#include "DetectorsBase/Propagator.h"          // for PV refit
+#include "DetectorsVertexing/PVertexer.h"      // for PV refit
+#include "Framework/AnalysisTask.h"
+#include "Framework/HistogramRegistry.h"
+#include "Framework/runDataProcessing.h"
+#include "ReconstructionDataFormats/V0.h"
+#include "ReconstructionDataFormats/Vertex.h" // for PV refit
 
-#include "PWGHF/Core/CentralityEstimation.h"
-#include "PWGHF/Core/SelectorCuts.h"
-#include "PWGHF/DataModel/CandidateReconstructionTables.h"
-#include "PWGHF/Utils/utilsAnalysis.h"
-#include "PWGHF/Utils/utilsBfieldCCDB.h"
-#include "PWGHF/Utils/utilsEvSelHf.h"
+#include <algorithm> // std::find
+#include <iterator>  // std::distance
+#include <string>    // std::string
+#include <vector>    // std::vector
 
 using namespace o2;
 using namespace o2::analysis;
@@ -132,17 +131,17 @@ struct HfTrackIndexSkimCreatorTagSelCollisions {
 
   /// Collision selection
   /// \param collision  collision table with
-  template <bool applyTrigSel, bool applyUPCSel, o2::hf_centrality::CentralityEstimator centEstimator, typename Col, typename BCs>
-  void selectCollision(const Col& collision, const BCs& bcs)
+  template <bool applyTrigSel, bool applyUPCSel, o2::hf_centrality::CentralityEstimator centEstimator, typename Col, typename BCsType>
+  void selectCollision(const Col& collision, const BCsType& bcs)
   {
     float centrality = -1.;
     uint32_t rejectionMask;
 
     if constexpr (applyUPCSel) {
-      rejectionMask = hfEvSel.getHfCollisionRejectionMask<applyTrigSel, centEstimator, BCs>(
+      rejectionMask = hfEvSel.getHfCollisionRejectionMask<applyTrigSel, centEstimator, BCsType>(
         collision, centrality, ccdb, registry, &bcs);
     } else {
-      rejectionMask = hfEvSel.getHfCollisionRejectionMask<applyTrigSel, centEstimator, BCs>(
+      rejectionMask = hfEvSel.getHfCollisionRejectionMask<applyTrigSel, centEstimator, BCsType>(
         collision, centrality, ccdb, registry, nullptr);
     }
 
