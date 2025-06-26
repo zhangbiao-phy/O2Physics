@@ -764,7 +764,7 @@ struct HfCandidateCreator2Prong {
   void processCollisionsUpc(soa::Join<aod::Collisions, aod::EvSels> const& collisions,
                             aod::BcFullInfos const& bcs,
                             aod::FT0s const& /*ft0s*/,
-                            aod::FV0As const& /*fv0as*/, 
+                            aod::FV0As const& /*fv0as*/,
                             aod::FDDs const& /*fdds*/,
                             aod::Zdcs const& /*zdcs*/)
   {
