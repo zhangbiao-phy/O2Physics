@@ -118,8 +118,10 @@ enum ChannelsProtonPid {
   LcToPK0S,
   NChannelsProtonPid
 };
+
 // kaon PID (opposite-sign track in 3-prong decays)
 constexpr int ChannelKaonPid = ChannelsProtonPid::NChannelsProtonPid;
+constexpr int ChannelsDeuteronPid = ChannelsProtonPid::NChannelsProtonPid+1;
 
 /// Event selection
 struct HfTrackIndexSkimCreatorTagSelCollisions {
@@ -307,7 +309,7 @@ struct HfTrackIndexSkimCreatorTagSelTracks {
     Configurable<bool> useIsGlobalTrackWoDCAForSoftPion{"useIsGlobalTrackWoDCAForSoftPion", false, "check isGlobalTrackWoDCA status for soft pion tracks"};
     Configurable<bool> useIsQualityTrackITSForSoftPion{"useIsQualityTrackITSForSoftPion", true, "check qualityTracksITS status for soft pion tracks"};
     // proton PID, applied only if corresponding process function enabled
-    Configurable<LabeledArray<float>> selectionsPid{"selectionsPid", {hf_presel_pid::CutsPid[0], 4, 6, hf_presel_pid::labelsRowsPid, hf_presel_pid::labelsCutsPid}, "PID selections for proton / kaon applied if proper process function enabled"};
+    Configurable<LabeledArray<float>> selectionsPid{"selectionsPid", {hf_presel_pid::CutsPid[0], 4, 7, hf_presel_pid::labelsRowsPid, hf_presel_pid::labelsCutsPid}, "PID selections for proton / kaon / deuteron applied if proper process function enabled"};
     // CCDB
     Configurable<std::string> ccdbUrl{"ccdbUrl", "http://alice-ccdb.cern.ch", "url of the ccdb repository"};
     Configurable<std::string> ccdbPathLut{"ccdbPathLut", "GLO/Param/MatLUT", "Path for LUT parametrization"};
@@ -324,9 +326,9 @@ struct HfTrackIndexSkimCreatorTagSelTracks {
   int runNumber{};
 
   using TracksWithSelAndDca = soa::Join<aod::TracksWCovDcaExtra, aod::TrackSelection>;
-  using TracksWithSelAndDcaAndPidTpc = soa::Join<aod::TracksWCovDcaExtra, aod::TrackSelection, aod::pidTPCFullPr, aod::pidTPCFullKa>;
-  using TracksWithSelAndDcaAndPidTof = soa::Join<aod::TracksWCovDcaExtra, aod::TrackSelection, aod::pidTOFFullPr, aod::pidTOFFullKa>;
-  using TracksWithSelAndDcaAndPidTpcTof = soa::Join<aod::TracksWCovDcaExtra, aod::TrackSelection, aod::pidTPCFullPr, aod::pidTOFFullPr, aod::pidTPCFullKa, aod::pidTOFFullKa>;
+  using TracksWithSelAndDcaAndPidTpc = soa::Join<aod::TracksWCovDcaExtra, aod::TrackSelection, aod::pidTPCFullPr, aod::pidTPCFullKa, aod::pidTPCFullDe>;
+  using TracksWithSelAndDcaAndPidTof = soa::Join<aod::TracksWCovDcaExtra, aod::TrackSelection, aod::pidTOFFullPr, aod::pidTOFFullKa, aod::pidTOFFullDe>;
+  using TracksWithSelAndDcaAndPidTpcTof = soa::Join<aod::TracksWCovDcaExtra, aod::TrackSelection, aod::pidTPCFullPr, aod::pidTOFFullPr, aod::pidTPCFullKa, aod::pidTOFFullKa, aod::pidTPCFullDe, aod::pidTOFFullDe>;
 
   Preslice<aod::Tracks> perCol = aod::track::collisionId;
   Preslice<TrackAssoc> trackIndicesPerCollision = aod::track_association::collisionId;
@@ -338,6 +340,7 @@ struct HfTrackIndexSkimCreatorTagSelTracks {
   // proton PID, if enabled
   std::array<TrackSelectorPr, ChannelsProtonPid::NChannelsProtonPid> selectorProton{};
   TrackSelectorKa selectorKaon;
+  TrackSelectorDe selectorDeuteron;
 
   Partition<TracksWithSelAndDca> pvContributors = ((aod::track::flags & static_cast<uint32_t>(aod::track::PVContributor)) == static_cast<uint32_t>(aod::track::PVContributor));
   Partition<TracksWithSelAndDcaAndPidTpc> pvContributorsWithPidTpc = ((aod::track::flags & static_cast<uint32_t>(aod::track::PVContributor)) == static_cast<uint32_t>(aod::track::PVContributor));
@@ -460,6 +463,13 @@ struct HfTrackIndexSkimCreatorTagSelTracks {
     selectorKaon.setRangePtTof(config.selectionsPid->get(ChannelKaonPid, 3u), config.selectionsPid->get(ChannelKaonPid, 4u));      // 3u == "minPtTof, 4u == "maxPtTof"
     selectorKaon.setRangeNSigmaTpc(-config.selectionsPid->get(ChannelKaonPid, 2u), config.selectionsPid->get(ChannelKaonPid, 2u)); // 2u == "nSigmaMaxTpc"
     selectorKaon.setRangeNSigmaTof(-config.selectionsPid->get(ChannelKaonPid, 5u), config.selectionsPid->get(ChannelKaonPid, 5u)); // 5u == "nSigmaMaxTof"
+      
+      selectorDeuteron.setRangePtTpc(config.selectionsPid->get(ChannelsDeuteronPid, 0u), config.selectionsPid->get(ChannelsDeuteronPid, 1u));      // 0u == "minPtTpc", 1u == "maxPtTpc"
+      selectorDeuteron.setRangePtTof(config.selectionsPid->get(ChannelsDeuteronPid, 3u), config.selectionsPid->get(ChannelsDeuteronPid, 4u));      // 3u == "minPtTof, 4u == "maxPtTof"
+      selectorDeuteron.setRangeNSigmaTpc(-config.selectionsPid->get(ChannelsDeuteronPid, 2u), config.selectionsPid->get(ChannelsDeuteronPid, 2u)); // 2u == "nSigmaMaxTpc"
+      selectorDeuteron.setRangeNSigmaTof(-config.selectionsPid->get(ChannelsDeuteronPid, 5u), config.selectionsPid->get(ChannelsDeuteronPid, 5u)); // 5u == "nSigmaMaxTof"
+      
+      
   }
 
   /// PID track cuts (for proton only)
@@ -475,6 +485,7 @@ struct HfTrackIndexSkimCreatorTagSelTracks {
           statusPid[iChannel] = selectorProton[iChannel].statusTof(hfTrack);
         }
         statusPid[ChannelKaonPid] = selectorKaon.statusTof(hfTrack);
+          statusPid[ChannelsDeuteronPid]= selectorDeuteron.statusTof(hfTrack);
       }
     }
     if constexpr (PidStrategy == ProtonPidStrategy::PidTpcOnly) {
@@ -483,6 +494,7 @@ struct HfTrackIndexSkimCreatorTagSelTracks {
           statusPid[iChannel] = selectorProton[iChannel].statusTpc(hfTrack);
         }
         statusPid[ChannelKaonPid] = selectorKaon.statusTpc(hfTrack);
+        statusPid[ChannelsDeuteronPid]= selectorDeuteron.statusTof(hfTrack);
       }
     }
     if constexpr (PidStrategy == ProtonPidStrategy::PidTpcOrTof) {
@@ -490,16 +502,19 @@ struct HfTrackIndexSkimCreatorTagSelTracks {
         statusPid[iChannel] = selectorProton[iChannel].statusTpcOrTof(hfTrack);
       }
       statusPid[ChannelKaonPid] = selectorKaon.statusTpcOrTof(hfTrack);
+      statusPid[ChannelsDeuteronPid]= selectorDeuteron.statusTof(hfTrack);
     }
     if constexpr (PidStrategy == ProtonPidStrategy::PidTpcAndTof) {
       for (auto iChannel{0u}; iChannel < ChannelsProtonPid::NChannelsProtonPid; ++iChannel) {
         statusPid[iChannel] = selectorProton[iChannel].statusTpcAndTof(hfTrack);
       }
       statusPid[ChannelKaonPid] = selectorKaon.statusTpcAndTof(hfTrack);
+    statusPid[ChannelsDeuteronPid]= selectorDeuteron.statusTof(hfTrack);
+
     }
 
-    int8_t flag = BIT(ChannelsProtonPid::NChannelsProtonPid + 1) - 1; // all bits on (including the kaon one)
-    for (auto iChannel{0u}; iChannel < ChannelsProtonPid::NChannelsProtonPid + 1; ++iChannel) {
+    int8_t flag = BIT(ChannelsProtonPid::NChannelsProtonPid + 2) - 1; // all bits on (including the kaon one)
+    for (auto iChannel{0u}; iChannel < ChannelsProtonPid::NChannelsProtonPid + 2; ++iChannel) {
       if (statusPid[iChannel] == TrackSelectorPID::Rejected) {
         CLRBIT(flag, iChannel);
       }
@@ -1232,6 +1247,9 @@ struct HfTrackIndexSkimCreator {
     // Xic+ cuts
     Configurable<std::vector<double>> binsPtXicToPKPi{"binsPtXicToPKPi", std::vector<double>{hf_cuts_presel_3prong::vecBinsPt}, "pT bin limits for Xic->pKpi pT-dependent cuts"};
     Configurable<LabeledArray<double>> cutsXicToPKPi{"cutsXicToPKPi", {hf_cuts_presel_3prong::Cuts[0], hf_cuts_presel_3prong::NBinsPt, hf_cuts_presel_3prong::NCutVars, hf_cuts_presel_3prong::labelsPt, hf_cuts_presel_3prong::labelsCutVar}, "Xic->pKpi selections per pT bin"};
+      Configurable<std::vector<double>> binsPtCdToDeKPi{"binsPtCdToDeKPi", std::vector<double>{hf_cuts_presel_3prong::vecBinsPt}, "pT bin limits for Cd->DeKpi pT-dependent cuts"};
+      Configurable<LabeledArray<double>> cutsCdToDeKPi{"cutsCdToDeKPi", {hf_cuts_presel_3prong::Cuts[0], hf_cuts_presel_3prong::NBinsPt, hf_cuts_presel_3prong::NCutVars, hf_cuts_presel_3prong::labelsPt, hf_cuts_presel_3prong::labelsCutVar}, "Cd->deKpi selections per pT bin"};
+
     // D*+ cuts
     Configurable<std::vector<double>> binsPtDstarToD0Pi{"binsPtDstarToD0Pi", std::vector<double>{hf_cuts_presel_dstar::vecBinsPt}, "pT bin limits for D*+->D0pi pT-dependent cuts"};
     Configurable<LabeledArray<double>> cutsDstarToD0Pi{"cutsDstarToD0Pi", {hf_cuts_presel_dstar::Cuts[0], hf_cuts_presel_dstar::NBinsPt, hf_cuts_presel_dstar::NCutVars, hf_cuts_presel_dstar::labelsPt, hf_cuts_presel_dstar::labelsCutVar}, "D*+->D0pi selections per pT bin"};
@@ -1240,7 +1258,7 @@ struct HfTrackIndexSkimCreator {
     Configurable<bool> applyProtonPidForLcToPKPi{"applyProtonPidForLcToPKPi", false, "Apply proton PID for Lc->pKpi"};
     Configurable<bool> applyProtonPidForXicToPKPi{"applyProtonPidForXicToPKPi", false, "Apply proton PID for Xic->pKpi"};
     Configurable<bool> applyKaonPidIn3Prongs{"applyKaonPidIn3Prongs", false, "Apply kaon PID for opposite-sign track in 3-prong and D* decays"};
-
+    Configurable<bool> applyDeuteronPidForCdToDeKPi{"applyDeuteronPidForCdToDeKPi", false,"Require deuteron PID for Cd->deKpi"};
     // ML models for triggers
     Configurable<bool> applyMlForHfFilters{"applyMlForHfFilters", false, "Flag to enable ML application for HF Filters"};
     Configurable<std::string> mlModelPathCCDB{"mlModelPathCCDB", "EventFiltering/PWGHF/BDTSmeared", "Path on CCDB of ML models for HF Filters"};
@@ -1339,12 +1357,15 @@ struct HfTrackIndexSkimCreator {
     arrMass3Prong[hf_cand_3prong::DecayType::XicToPKPi] = std::array{std::array{MassProton, MassKPlus, MassPiPlus},
                                                                      std::array{MassPiPlus, MassKPlus, MassProton}};
 
+    arrMass3Prong[hf_cand_3prong::DecayType::CdToDeKPi] = std::array{std::array{MassDeuteron, MassKPlus, MassPiPlus},
+                                                                     std::array{MassPiPlus, MassKPlus, MassDeuteron}};
+      
     // cuts for 2-prong decays retrieved by json. the order must be then one in hf_cand_2prong::DecayType
     cut2Prong = {config.cutsD0ToPiK, config.cutsJpsiToEE, config.cutsJpsiToMuMu};
     binsPt2Prong = {config.binsPtD0ToPiK, config.binsPtJpsiToEE, config.binsPtJpsiToMuMu};
     // cuts for 3-prong decays retrieved by json. the order must be then one in hf_cand_3prong::DecayType
-    cut3Prong = {config.cutsDplusToPiKPi, config.cutsLcToPKPi, config.cutsDsToKKPi, config.cutsXicToPKPi};
-    binsPt3Prong = {config.binsPtDplusToPiKPi, config.binsPtLcToPKPi, config.binsPtDsToKKPi, config.binsPtXicToPKPi};
+    cut3Prong = {config.cutsDplusToPiKPi, config.cutsLcToPKPi, config.cutsDsToKKPi, config.cutsXicToPKPi, config.cutsCdToDeKPi};
+    binsPt3Prong = {config.binsPtDplusToPiKPi, config.binsPtLcToPKPi, config.binsPtDsToKKPi, config.binsPtXicToPKPi, config.binsPtCdToDeKPi};
 
     df2.setPropagateToPCA(config.propagateToPCA);
     df2.setMaxR(config.maxR);
@@ -1392,6 +1413,7 @@ struct HfTrackIndexSkimCreator {
       registry.add("hMassDsToKKPi", "D_{s}^{#plus} candidates;inv. mass (K K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1D, {{500, 0., 5.}}});
       registry.add("hMassXicToPKPi", "#Xi_{c}^{#plus} candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1D, {{500, 0., 5.}}});
       registry.add("hMassDstarToD0Pi", "D^{*#plus} candidates;inv. mass (K #pi #pi) - mass (K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1D, {{500, 0.135, 0.185}}});
+      registry.add("hMassCdToDeKPi", "C Deuteron candidates;inv. mass (De K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1D, {{500, 0., 5.}}});
 
       // needed for PV refitting
       if (doprocess2And3ProngsWithPvRefit || doprocess2And3ProngsWithPvRefitWithPidForHfFiltersBdt) {
@@ -1617,11 +1639,12 @@ struct HfTrackIndexSkimCreator {
 
       // check proton PID for Lc and Xic
       whichHypo[iDecay3P] = 3; // 2 bits on
-      if ((iDecay3P == hf_cand_3prong::DecayType::LcToPKPi && config.applyProtonPidForLcToPKPi) || (iDecay3P == hf_cand_3prong::DecayType::XicToPKPi && config.applyProtonPidForXicToPKPi)) {
-        if ((iDecay3P == hf_cand_3prong::DecayType::LcToPKPi && !TESTBIT(isIdentifiedPidTrack0, ChannelsProtonPid::LcToPKPi)) || (iDecay3P == hf_cand_3prong::DecayType::XicToPKPi && !TESTBIT(isIdentifiedPidTrack0, ChannelsProtonPid::XicToPKPi))) {
+      if ((iDecay3P == hf_cand_3prong::DecayType::LcToPKPi && config.applyProtonPidForLcToPKPi) || (iDecay3P == hf_cand_3prong::DecayType::XicToPKPi && config.applyProtonPidForXicToPKPi) || (iDecay3P == hf_cand_3prong::DecayType::CdToDeKPi && config.applyDeuteronPidForCdToDeKPi)) {
+          
+        if ((iDecay3P == hf_cand_3prong::DecayType::LcToPKPi && !TESTBIT(isIdentifiedPidTrack0, ChannelsProtonPid::LcToPKPi)) || (iDecay3P == hf_cand_3prong::DecayType::XicToPKPi && !TESTBIT(isIdentifiedPidTrack0, ChannelsProtonPid::XicToPKPi)) || (iDecay3P == hf_cand_3prong::DecayType::CdToDeKPi && !TESTBIT(isIdentifiedPidTrack0, ChannelsDeuteronPid))) {
           CLRBIT(whichHypo[iDecay3P], 0);
         }
-        if ((iDecay3P == hf_cand_3prong::DecayType::LcToPKPi && !TESTBIT(isIdentifiedPidTrack2, ChannelsProtonPid::LcToPKPi)) || (iDecay3P == hf_cand_3prong::DecayType::XicToPKPi && !TESTBIT(isIdentifiedPidTrack2, ChannelsProtonPid::XicToPKPi))) {
+        if ((iDecay3P == hf_cand_3prong::DecayType::LcToPKPi && !TESTBIT(isIdentifiedPidTrack2, ChannelsProtonPid::LcToPKPi)) || (iDecay3P == hf_cand_3prong::DecayType::XicToPKPi && !TESTBIT(isIdentifiedPidTrack2, ChannelsProtonPid::XicToPKPi)) || (iDecay3P == hf_cand_3prong::DecayType::CdToDeKPi && !TESTBIT(isIdentifiedPidTrack2, ChannelsDeuteronPid))) {
           CLRBIT(whichHypo[iDecay3P], 1);
         }
         if (whichHypo[iDecay3P] == 0) {
@@ -1853,6 +1876,12 @@ struct HfTrackIndexSkimCreator {
               registry.fill(HIST("ML/hMlScoreNonpromptXic"), outputScores[iDecay3P][2]);
               break;
             }
+              case hf_cand_3prong::DecayType::CdToDeKPi: {
+                registry.fill(HIST("ML/hMlScoreBkgCd"), outputScores[iDecay3P][0]);
+                registry.fill(HIST("ML/hMlScorePromptCd"), outputScores[iDecay3P][1]);
+                registry.fill(HIST("ML/hMlScoreNonpromptCd"), outputScores[iDecay3P][2]);
+                break;
+              }
           }
         }
         if (!isMlSel) {
@@ -2052,16 +2081,7 @@ struct HfTrackIndexSkimCreator {
                       TTracks const& tracks)
   {
 
-    // can be added to run over limited collisions per file - for tesing purposes
-    /*
-    if (nCollsMax > -1){
-      if (nColls == nCollMax){
-        return;
-        //can be added to run over limited collisions per file - for tesing purposes
-      }
-      nColls++;
-    }
-    */
+
 
     for (const auto& collision : collisions) {
 
@@ -2608,6 +2628,9 @@ struct HfTrackIndexSkimCreator {
                         case hf_cand_3prong::DecayType::XicToPKPi:
                           registry.fill(HIST("hMassXicToPKPi"), mass3Prong);
                           break;
+                          case hf_cand_3prong::DecayType::CdToDeKPi:
+                            registry.fill(HIST("hMassCdToDeKPi"), mass3Prong);
+                            break;
                       }
                     }
                     if (TESTBIT(whichHypo3Prong[iDecay3P], 1)) {
@@ -2622,6 +2645,9 @@ struct HfTrackIndexSkimCreator {
                         case hf_cand_3prong::DecayType::XicToPKPi:
                           registry.fill(HIST("hMassXicToPKPi"), mass3Prong);
                           break;
+                        case hf_cand_3prong::DecayType::CdToDeKPi:
+                            registry.fill(HIST("hMassCdToDeKPi"), mass3Prong);
+                        break;
                       }
                     }
                   }
@@ -2859,6 +2885,9 @@ struct HfTrackIndexSkimCreator {
                         case hf_cand_3prong::DecayType::XicToPKPi:
                           registry.fill(HIST("hMassXicToPKPi"), mass3Prong);
                           break;
+                        case hf_cand_3prong::DecayType::CdToDeKPi:
+                          registry.fill(HIST("hMassCdToDeKPi"), mass3Prong);
+                          break;
                       }
                     }
                     if (TESTBIT(whichHypo3Prong[iDecay3P], 1)) {
@@ -2872,6 +2901,9 @@ struct HfTrackIndexSkimCreator {
                           break;
                         case hf_cand_3prong::DecayType::XicToPKPi:
                           registry.fill(HIST("hMassXicToPKPi"), mass3Prong);
+                          break;
+                        case hf_cand_3prong::DecayType::CdToDeKPi:
+                          registry.fill(HIST("hMassCdToDeKPi"), mass3Prong);
                           break;
                       }
                     }
