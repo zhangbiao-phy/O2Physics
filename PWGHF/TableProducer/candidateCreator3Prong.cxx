@@ -252,11 +252,11 @@ struct HfCandidateCreator3Prong {
       fillProngPid<HfProngSpecies::Proton>(track1, rowProng1PidPr);
       fillProngPid<HfProngSpecies::Proton>(track2, rowProng2PidPr);
     }
-      if (createCd) {
-        fillProngPid<HfProngSpecies::Deuteron>(track0, rowProng0PidDe);
-        fillProngPid<HfProngSpecies::Deuteron>(track1, rowProng1PidDe);
-        fillProngPid<HfProngSpecies::Deuteron>(track2, rowProng2PidDe);
-      }
+    if (createCd) {
+      fillProngPid<HfProngSpecies::Deuteron>(track0, rowProng0PidDe);
+      fillProngPid<HfProngSpecies::Deuteron>(track1, rowProng1PidDe);
+      fillProngPid<HfProngSpecies::Deuteron>(track2, rowProng2PidDe);
+    }
   }
 
   template <bool DoPvRefit, bool ApplyUpcSel, o2::hf_centrality::CentralityEstimator CentEstimator, typename Coll, typename Cand, typename BCsType>
