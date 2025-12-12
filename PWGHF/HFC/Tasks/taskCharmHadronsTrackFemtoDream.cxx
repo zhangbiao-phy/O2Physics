@@ -295,19 +295,19 @@ struct HfTaskCharmHadronsTrackFemtoDream {
     selectedTrackHisto.init(&registry, binmultTempFit, binMulPercentile, binpTTrack, binEta, binPhi, binTempFitVarTrack, binNSigmaTPC, binNSigmaTOF, binNSigmaTPCTOF, binTPCClusters, dummy, dummy, isMc, trackSel.pdgCodeTrack1, true);
 
     sameEventCont.init(&registry,
-                             binkstar, binpTTrack, binkT, binmT, mixingBinMult, mixingBinMultPercentile,
-                             bin4Dkstar, bin4DmT, bin4DMult, bin4DmultPercentile,
-                             isMc, use4D, extendedPlots,
-                             highkstarCut,
-                             smearingByOrigin, binInvMass);
+                       binkstar, binpTTrack, binkT, binmT, mixingBinMult, mixingBinMultPercentile,
+                       bin4Dkstar, bin4DmT, bin4DMult, bin4DmultPercentile,
+                       isMc, use4D, extendedPlots,
+                       highkstarCut,
+                       smearingByOrigin, binInvMass);
 
     sameEventCont.setPDGCodes(trackSel.pdgCodeTrack1, charmSel.charmHadPDGCode);
     mixedEventCont.init(&registry,
-                              binkstar, binpTTrack, binkT, binmT, mixingBinMult, mixingBinMultPercentile,
-                              bin4Dkstar, bin4DmT, bin4DMult, bin4DmultPercentile,
-                              isMc, use4D, extendedPlots,
-                              highkstarCut,
-                              smearingByOrigin, binInvMass);
+                        binkstar, binpTTrack, binkT, binmT, mixingBinMult, mixingBinMultPercentile,
+                        bin4Dkstar, bin4DmT, bin4DMult, bin4DmultPercentile,
+                        isMc, use4D, extendedPlots,
+                        highkstarCut,
+                        smearingByOrigin, binInvMass);
 
     mixedEventCont.setPDGCodes(trackSel.pdgCodeTrack1, charmSel.charmHadPDGCode);
     registryMixQa.add("MixingQA/hSECollisionBins", "; bin; Entries", kTH1F, {{120, -0.5, 119.5}});
