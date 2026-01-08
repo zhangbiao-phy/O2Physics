@@ -134,7 +134,6 @@ enum ChannelsLightNucleiPid {
   NChannelsLightNucleiPid
 };
 
-
 // kaon PID (opposite-sign track in 3-prong decays)
 constexpr int ChannelKaonPid = ChannelsProtonPid::NChannelsProtonPid;
 constexpr int ChannelsDeuteronPid = ChannelsProtonPid::NChannelsProtonPid + 1;
